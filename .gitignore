@@ -1,0 +1,19 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Env: the anon key is public and lives in .env (committed on purpose, see README).
+# Never commit service_role keys or VAPID *private* keys.
+.env.secret

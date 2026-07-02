@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --theme-glow: transparent;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    background-color: theme('colors.bg');
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    margin: 0;
+    min-height: 100dvh;
+    max-width: 100vw;
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+    background: radial-gradient(
+      circle at top,
+      var(--theme-glow) 0%,
+      theme('colors.bg') 42%,
+      theme('colors.bg') 100%
+    );
+    transition: background 0.8s ease;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  select {
+    -webkit-user-select: auto;
+    user-select: auto;
+  }
+
+  /* Hide scrollbars app-wide for a native-app feel, keep scrollability. */
+  * {
+    scrollbar-width: none;
+  }
+  *::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* When a modal is open we lock the body scroll (see useScrollLock). */
+  body.scroll-locked {
+    overflow: hidden;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme('colors.accent.neon');
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/5 border border-white/10 backdrop-blur-xl;
+  }
+
+  .skeleton {
+    @apply animate-skeleton rounded-xl opacity-50;
+    background: linear-gradient(90deg, #111320 25%, #1a1d2e 50%, #111320 75%);
+    background-size: 200% 100%;
+  }
+
+  .card-surface {
+    @apply bg-card rounded-xl2 shadow-card border border-white/5;
+  }
+
+  .link {
+    @apply font-semibold text-accent-neon transition hover:text-white;
+  }
+}
+
+@layer utilities {
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(45deg, theme('colors.accent.neon'), theme('colors.accent.purple'));
+  }
+}
+
+/* Respect users who prefer reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
