@@ -154,19 +154,12 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
             <ErrorState onRetry={() => detail.refetch()} />
           </div>
         ) : a ? (
-          <>
-            <div className="my-4 grid grid-cols-2 gap-2 text-left">
-              <Meta label="Score" value={a.score ? `★ ${a.score}` : '—'} />
-              <Meta label="Folgen" value={a.episodes ? String(a.episodes) : '—'} />
-              <Meta label="Typ" value={a.type ?? '—'} />
-              <Meta label="Status" value={a.status ?? '—'} />
-            </div>
-            {a.synopsis && (
-              <p className="mb-4 max-h-40 overflow-y-auto text-left text-sm leading-relaxed text-muted">
-                {a.synopsis}
-              </p>
-            )}
-          </>
+          <div className="my-4 grid grid-cols-2 gap-2 text-left">
+            <Meta label="Score" value={a.score ? `★ ${a.score}` : '—'} />
+            <Meta label="Folgen" value={a.episodes ? String(a.episodes) : '—'} />
+            <Meta label="Typ" value={a.type ?? '—'} />
+            <Meta label="Status" value={a.status ?? '—'} />
+          </div>
         ) : null
       ) : (
         <div className="my-4 grid grid-cols-2 gap-2 text-left">
@@ -259,12 +252,6 @@ function DiscoverDetail({ malId, onClose }: { malId: number; onClose: () => void
         <Meta label="Typ" value={a.type ?? '—'} />
         <Meta label="Status" value={a.status ?? '—'} />
       </div>
-
-      {a.synopsis && (
-        <p className="mb-5 max-h-40 overflow-y-auto text-left text-sm leading-relaxed text-muted">
-          {a.synopsis}
-        </p>
-      )}
 
       {tracked ? (
         <div
