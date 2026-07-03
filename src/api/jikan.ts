@@ -97,7 +97,11 @@ export const jikanApi = {
   },
 
   getTop(
-    opts: { type?: 'movie'; filter?: 'bypopularity' | 'favorite' | 'airing'; page?: number },
+    opts: {
+      type?: 'tv' | 'movie';
+      filter?: 'bypopularity' | 'favorite' | 'airing';
+      page?: number;
+    },
     signal?: AbortSignal,
   ) {
     const params = new URLSearchParams({ limit: '20', page: String(opts.page ?? 1) });
@@ -106,10 +110,27 @@ export const jikanApi = {
     return jikan<JikanListResponse>(`/top/anime?${params.toString()}`, signal);
   },
 
-  byGenre(genreId: number, page = 1, signal?: AbortSignal) {
-    return jikan<JikanListResponse>(
-      `/anime?genres=${genreId}&order_by=members&sort=desc&limit=20&page=${page}&sfw`,
-      signal,
-    );
+  byGenre(
+    genreId: number,
+    opts: {
+      page?: number;
+      orderBy?: 'members' | 'score' | 'start_date';
+      sort?: 'asc' | 'desc';
+      status?: 'airing' | 'complete' | 'upcoming';
+      type?: 'tv' | 'movie';
+    } = {},
+    signal?: AbortSignal,
+  ) {
+    const params = new URLSearchParams({
+      genres: String(genreId),
+      order_by: opts.orderBy ?? 'members',
+      sort: opts.sort ?? 'desc',
+      limit: '20',
+      page: String(opts.page ?? 1),
+      sfw: 'true',
+    });
+    if (opts.status) params.set('status', opts.status);
+    if (opts.type) params.set('type', opts.type);
+    return jikan<JikanListResponse>(`/anime?${params.toString()}`, signal);
   },
 };

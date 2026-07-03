@@ -111,6 +111,17 @@
   .timeline-pop {
     animation: timelinePop 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
+
+  /* Ambient particle that drifts up the screen behind a themed genre page
+     (hearts for Romance, sparkles for Fantasy, soft orbs otherwise). Position,
+     size, duration and delay are set inline per particle so the field feels
+     organic rather than a marching grid. */
+  .genre-particle {
+    position: absolute;
+    bottom: -8%;
+    animation: genreFloat linear infinite;
+    will-change: transform, opacity;
+  }
 }
 
 @keyframes timelinePop {
@@ -121,6 +132,23 @@
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes genreFloat {
+  0% {
+    transform: translateY(0) scale(0.85) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--p-opacity, 0.5);
+  }
+  85% {
+    opacity: var(--p-opacity, 0.5);
+  }
+  100% {
+    transform: translateY(-108vh) scale(1.05) rotate(var(--p-rot, 8deg));
+    opacity: 0;
   }
 }
 

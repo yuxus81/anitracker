@@ -8,9 +8,13 @@ export function Header() {
   return (
     <header className="flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+18px)] pb-4 md:px-10">
       <Link to="/" className="flex items-center gap-3 transition hover:scale-[1.03]">
-        <span className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-accent-purple to-blue text-xl shadow-glow-purple">
-          🎬
-        </span>
+        <img
+          src={`${import.meta.env.BASE_URL}icons/icon-192.png`}
+          alt="AniTracker"
+          width={44}
+          height={44}
+          className="h-11 w-11 rounded-xl shadow-glow-purple"
+        />
         <span className="text-2xl font-bold tracking-tight">AniTracker</span>
       </Link>
 

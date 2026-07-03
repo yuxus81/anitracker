@@ -15,29 +15,29 @@ export function NeonTicket({ anime }: { anime: AnimeRow }) {
       type="button"
       onClick={() => openRow(anime)}
       aria-label={`Details zu ${anime.title}`}
-      className="hover-lift flex w-full items-center gap-4 rounded-xl2 border-[1.5px] border-accent-neon/55 bg-[#0a0c12] p-3 text-left shadow-glow-neon hover:border-accent-neon"
+      className="hover-lift flex w-full items-center gap-4 rounded-xl2 border-[1.5px] border-accent-neon/55 bg-[#0a0c12] p-3.5 text-left shadow-glow-neon hover:border-accent-neon"
     >
       {anime.cover_url ? (
         <img
           src={anime.cover_url}
           alt=""
           loading="lazy"
-          className="h-[84px] w-[58px] flex-shrink-0 rounded-lg object-cover"
+          className="h-[150px] w-[105px] flex-shrink-0 rounded-xl object-cover shadow-card"
         />
       ) : (
-        <span className="grid h-[84px] w-[58px] flex-shrink-0 place-items-center rounded-lg bg-white/5 text-accent-neon">
-          <PlayGlyph className="h-6 w-6" />
+        <span className="grid h-[150px] w-[105px] flex-shrink-0 place-items-center rounded-xl bg-white/5 text-accent-neon">
+          <PlayGlyph className="h-9 w-9" />
         </span>
       )}
 
       <span className="min-w-0 flex-1">
-        <span className="block truncate font-bold leading-tight">{anime.title}</span>
-        <span className="mt-1 block text-xs font-bold uppercase tracking-wide text-accent-neon">
+        <span className="line-clamp-2 block text-lg font-bold leading-snug">{anime.title}</span>
+        <span className="mt-1.5 block text-xs font-bold uppercase tracking-wide text-accent-neon">
           ▶ Läuft
         </span>
       </span>
 
-      <span className="flex-shrink-0 pr-1 text-xl text-accent-neon/50" aria-hidden>
+      <span className="flex-shrink-0 pr-1 text-2xl text-accent-neon/50" aria-hidden>
         ›
       </span>
     </button>

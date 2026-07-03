@@ -47,9 +47,13 @@ export function AuthScreen() {
     <div className="flex min-h-[100dvh] items-center justify-center px-5 pt-safe pb-safe">
       <div className="w-full max-w-sm rounded-xl3 border border-accent-purple/25 bg-card p-8 shadow-modal">
         <div className="mb-7 text-center">
-          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-accent-purple to-blue text-3xl shadow-glow-purple">
-            🎬
-          </div>
+          <img
+            src={`${import.meta.env.BASE_URL}icons/icon-192.png`}
+            alt="AniTracker"
+            width={64}
+            height={64}
+            className="mx-auto mb-4 h-16 w-16 rounded-2xl shadow-glow-purple"
+          />
           <h1 className="text-2xl font-extrabold text-gradient">YP AniTracker</h1>
           <p className="mt-1 text-sm text-muted">{title}</p>
         </div>

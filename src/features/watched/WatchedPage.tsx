@@ -141,9 +141,7 @@ export function WatchedPage() {
                           >
                             🔎 Sucht Neuigkeiten
                           </span>
-                        ) : (
-                          <Chip theme={t}>✅ Gesehen</Chip>
-                        )
+                        ) : undefined
                       }
                     />
                   );
@@ -191,7 +189,11 @@ export function WatchedPage() {
                     index={i}
                     sheen
                     onOpen={() => openRow(a)}
-                    chip={<Chip theme={categoryTheme.neuerscheinung}>✨ Jetzt verfügbar</Chip>}
+                    chip={
+                      <Chip theme={categoryTheme.neuerscheinung}>
+                        {a.release_label ?? 'Verfügbar'}
+                      </Chip>
+                    }
                   />
                 ))}
               </div>
