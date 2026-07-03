@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
+import { ActionButton } from '@/components/ui/ActionButton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { useAnimesQuery, useAddAnime, useUpdateAnime } from '@/hooks/useAnimes';
 import { toast } from '@/store/ui';
@@ -40,11 +41,21 @@ function FranchiseWizard({ seed, onDone }: { seed: FranchiseSeed; onDone: () => 
 
   const nodes = scan.data ?? [];
 
-  // Default the selection to the seed node (or the last node if not found).
+  // A node you can actually mark as "last finished": it must already be out
+  // (or currently airing). Not-yet-released entries are never selectable.
+  const isSelectable = (n: TimelineNode) => n.released || n.airing;
+
+  // Default the selection to the seed node when it's selectable, else the last
+  // released/airing node (never a future one).
   useEffect(() => {
     if (nodes.length === 0) return;
-    const exists = nodes.some((n) => n.malId === seed.malId);
-    setSelectedId(exists ? seed.malId : (nodes[nodes.length - 1]?.malId ?? null));
+    const seedNode = nodes.find((n) => n.malId === seed.malId);
+    if (seedNode && isSelectable(seedNode)) {
+      setSelectedId(seed.malId);
+      return;
+    }
+    const lastSelectable = [...nodes].reverse().find(isSelectable);
+    setSelectedId(lastSelectable?.malId ?? nodes[nodes.length - 1]?.malId ?? null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scan.data]);
 
@@ -243,23 +254,40 @@ function FranchiseWizard({ seed, onDone }: { seed: FranchiseSeed; onDone: () => 
           <div className="space-y-1">
             {nodes.map((node, i) => {
               const ignored = cutIndex !== null && i > cutIndex;
-              const selected = node.malId === selectedId;
+              const locked = !isSelectable(node);
+              const disabled = ignored || locked;
+              const selected = node.malId === selectedId && !disabled;
               return (
-                <div key={node.malId}>
+                <div
+                  key={node.malId}
+                  className="timeline-pop"
+                  style={{ animationDelay: `${Math.min(i, 14) * 80}ms` }}
+                >
                   <button
                     type="button"
-                    disabled={ignored}
+                    disabled={disabled}
                     onClick={() => setSelectedId(node.malId)}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-xl border p-2 text-left transition',
+                      'flex w-full items-center gap-3 rounded-xl2 border p-2.5 text-left transition-all duration-300',
                       ignored
                         ? 'border-white/5 opacity-40'
-                        : selected
-                          ? 'border-accent-neon bg-accent-neon/10'
-                          : 'border-white/10 bg-white/5 hover:bg-white/10',
+                        : locked
+                          ? 'cursor-not-allowed border-white/5 bg-white/[0.02] opacity-60'
+                          : selected
+                            ? 'border-accent-neon bg-accent-neon/[0.12] shadow-[0_0_30px_-8px_rgba(0,245,212,0.85)]'
+                            : 'border-accent-purple/25 bg-accent-purple/[0.06] hover:border-accent-purple/50 hover:bg-accent-purple/[0.12]',
                     )}
                   >
-                    <span className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full border border-white/15 text-xs font-bold">
+                    <span
+                      className={cn(
+                        'grid h-8 w-8 flex-shrink-0 place-items-center rounded-full border text-sm font-bold transition-all duration-300',
+                        selected
+                          ? 'border-accent-neon bg-accent-neon/25 text-accent-neon shadow-[0_0_14px_rgba(0,245,212,0.85)]'
+                          : locked
+                            ? 'border-white/15 bg-card text-muted'
+                            : 'border-accent-purple/40 bg-accent-purple/15 text-[#c18eff]',
+                      )}
+                    >
                       {i + 1}
                     </span>
                     {node.cover ? (
@@ -267,33 +295,40 @@ function FranchiseWizard({ seed, onDone }: { seed: FranchiseSeed; onDone: () => 
                         src={node.cover}
                         alt=""
                         loading="lazy"
-                        className="h-16 w-11 flex-shrink-0 rounded-md object-cover"
+                        className="h-20 w-14 flex-shrink-0 rounded-lg object-cover shadow-card"
                       />
                     ) : (
-                      <div className="grid h-16 w-11 flex-shrink-0 place-items-center rounded-md bg-white/5">
+                      <div className="grid h-20 w-14 flex-shrink-0 place-items-center rounded-lg border border-accent-purple/25 bg-accent-purple/10 text-2xl">
                         🎬
                       </div>
                     )}
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-bold">{node.title}</span>
+                      <span className="block truncate text-[0.95rem] font-bold">{node.title}</span>
                       <span className="block text-xs text-muted">
                         {node.type ?? 'Anime'}
                         {node.label ? ` · ${node.label}` : ''}
                       </span>
                       {node.airing ? (
-                        <span className="text-[0.65rem] font-bold text-accent-neon">🔴 Läuft aktuell</span>
+                        <span className="text-[0.7rem] font-bold text-accent-neon">🔴 Läuft aktuell</span>
                       ) : !node.released ? (
-                        <span className="text-[0.65rem] font-bold text-orange">
-                          ⏳ Noch nicht erschienen
+                        <span className="text-[0.7rem] font-bold text-orange">
+                          🔒 Noch nicht erschienen
                         </span>
                       ) : null}
                     </span>
-                    {selected && !ignored && <span className="text-accent-neon">✓</span>}
+                    {selected ? (
+                      <span className="text-lg text-accent-neon">✓</span>
+                    ) : locked ? (
+                      <span aria-hidden>🔒</span>
+                    ) : null}
                   </button>
 
                   {i < nodes.length - 1 && (
-                    <div className="flex items-center gap-2 py-1 pl-6">
-                      <span className="h-4 w-px bg-white/15" aria-hidden />
+                    <div className="flex items-center gap-2 py-0.5 pl-[22px]">
+                      <span
+                        className="h-5 w-[2px] rounded-full bg-gradient-to-b from-accent-purple to-accent-neon opacity-60"
+                        aria-hidden
+                      />
                       <button
                         type="button"
                         onClick={() => setCut(i)}
@@ -313,15 +348,14 @@ function FranchiseWizard({ seed, onDone }: { seed: FranchiseSeed; onDone: () => 
             })}
           </div>
 
-          <Button
-            variant="primary"
-            fullWidth
-            className="mt-6"
+          <ActionButton
+            variant="purple"
+            className="mt-6 w-full"
             loading={busy}
             onClick={confirmTimeline}
           >
             Auswahl bestätigen
-          </Button>
+          </ActionButton>
         </>
       )}
     </div>

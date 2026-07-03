@@ -14,13 +14,12 @@ export function ReleaseCard({ anime }: { anime: AnimeRow }) {
       type="button"
       onClick={() => openRow(anime)}
       aria-label={`Details zu ${anime.title}`}
-      className="group hover-lift relative block overflow-hidden rounded-xl2 border border-orange/30 bg-card text-left shadow-card hover:border-orange/60"
+      className="group hover-lift block w-full text-left"
     >
-      <span className="absolute left-2 top-2 z-10 rounded-md bg-orange px-2 py-0.5 text-[0.65rem] font-extrabold uppercase text-white shadow">
-        Neu
-      </span>
-
-      <span className="block aspect-[2/3] w-full overflow-hidden bg-black/30">
+      <span className="relative block aspect-[2/3] w-full overflow-hidden rounded-xl2 border border-orange/30 bg-black/30 shadow-card transition group-hover:border-orange/60">
+        <span className="absolute left-2 top-2 z-10 rounded-md bg-orange px-2 py-0.5 text-[0.65rem] font-extrabold uppercase text-white shadow">
+          Neu
+        </span>
         {anime.cover_url ? (
           <img
             src={anime.cover_url}
@@ -35,10 +34,9 @@ export function ReleaseCard({ anime }: { anime: AnimeRow }) {
         )}
       </span>
 
-      <span className="block p-2.5">
-        <span className="block truncate text-sm font-bold">{anime.title}</span>
-        <span className="mt-0.5 block truncate text-xs text-muted">
-          {anime.release_label ?? 'Verfügbar'}
+      <span className="mt-1.5 block px-0.5">
+        <span className="block line-clamp-2 text-xs font-semibold leading-snug text-ink/90">
+          {anime.title}
         </span>
       </span>
     </button>

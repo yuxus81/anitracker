@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Modal } from '@/components/ui/Modal';
-import { Button } from '@/components/ui/Button';
+import { ActionButton, type ActionVariant } from '@/components/ui/ActionButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { FilmIcon } from '@/components/icons/CategoryIcons';
@@ -36,8 +36,33 @@ export function DetailModal() {
 
 interface Action {
   label: string;
-  variant: 'primary' | 'neon' | 'danger';
+  variant: ActionVariant;
   onClick: () => void;
+}
+
+/**
+ * Lays actions out two-up. An odd final action stretches full width so the row
+ * never leaves a lonely half-width button (e.g. context action + delete = two
+ * side-by-side; a third would sit full width beneath them).
+ */
+function ActionGrid({ actions }: { actions: Action[] }) {
+  return (
+    <div className="mt-4 grid grid-cols-2 gap-2.5">
+      {actions.map((ac, i) => {
+        const lastOdd = i === actions.length - 1 && actions.length % 2 === 1;
+        return (
+          <ActionButton
+            key={ac.label}
+            variant={ac.variant}
+            onClick={ac.onClick}
+            className={cn(lastOdd && 'col-span-2')}
+          >
+            {ac.label}
+          </ActionButton>
+        );
+      })}
+    </div>
+  );
 }
 
 function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void }) {
@@ -98,14 +123,15 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
   if (row.category === 'watched') {
     actions.push({ label: '🔮 Fortsetzung prüfen', variant: 'neon', onClick: checkFranchise });
   } else if (row.category === 'next_season' && !row.is_released) {
-    actions.push({ label: '✅ Als erschienen markieren', variant: 'primary', onClick: markReleased });
+    actions.push({ label: '✅ Als erschienen', variant: 'purple', onClick: markReleased });
   } else if (row.category === 'next_season' && row.is_released) {
     actions.push({ label: '▶️ Jetzt schauen', variant: 'neon', onClick: startWatching });
   } else if (row.category === 'watchlist') {
     actions.push({ label: '▶️ Jetzt schauen', variant: 'neon', onClick: startWatching });
   } else if (row.category === 'current') {
-    actions.push({ label: '✅ Staffel abschließen', variant: 'neon', onClick: checkFranchise });
+    actions.push({ label: '🏁 Abschließen', variant: 'neon', onClick: checkFranchise });
   }
+  actions.push({ label: '🗑️ Entfernen', variant: 'danger', onClick: remove });
 
   return (
     <div className="text-center">
@@ -169,16 +195,7 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
         </div>
       )}
 
-      <div className="mt-2 flex flex-col gap-2">
-        {actions.map((ac) => (
-          <Button key={ac.label} variant={ac.variant} fullWidth onClick={ac.onClick}>
-            {ac.label}
-          </Button>
-        ))}
-        <Button variant="danger" fullWidth onClick={remove}>
-          🗑️ Aus Sammlung entfernen
-        </Button>
-      </div>
+      <ActionGrid actions={actions} />
     </div>
   );
 }
@@ -263,13 +280,13 @@ function DiscoverDetail({ malId, onClose }: { malId: number; onClose: () => void
           Bereits in deiner Sammlung ({themeForRow(tracked).label})
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          <Button variant="primary" fullWidth loading={addAnime.isPending} onClick={addToWatchlist}>
-            🔖 Zur Watchlist hinzufügen
-          </Button>
-          <Button variant="neon" fullWidth onClick={markWatched}>
+        <div className="grid grid-cols-2 gap-2.5">
+          <ActionButton variant="purple" loading={addAnime.isPending} onClick={addToWatchlist}>
+            🔖 Watchlist
+          </ActionButton>
+          <ActionButton variant="neon" onClick={markWatched}>
             ✅ Schon gesehen
-          </Button>
+          </ActionButton>
         </div>
       )}
     </div>

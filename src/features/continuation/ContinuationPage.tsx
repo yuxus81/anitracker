@@ -6,20 +6,12 @@ import { ListSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
-import { categoryTheme } from '@/theme/categoryTheme';
-import { cn } from '@/utils/cn';
-import type { AnimeRow } from '@/types/db';
-import { HubCard } from '@/features/watched/HubCard';
-
-const theme = categoryTheme.fortsetzung;
-
-function formatLabel(a: AnimeRow): string | null {
-  return a.format === 'movie' ? '🎬 Film' : a.format === 'season' ? '📺 Neue Staffel' : null;
-}
+import { ContinuationCard } from './ContinuationCard';
 
 /**
  * Dedicated "Fortsetzung folgt" page: only the purple entries whose continuation
  * is announced but not yet released. Released ones live on Geschaut & Home.
+ * Laid out as a distinct info-forward grid (not the Watchlist poster grid).
  */
 export function ContinuationPage() {
   const { grouped, isLoading, isError, refetch } = useGroupedAnimes();
@@ -55,46 +47,10 @@ export function ContinuationPage() {
           hint="Schließ eine Serie ab — die nächste Staffel landet automatisch hier, sobald sie angekündigt ist."
         />
       ) : (
-        <div className="flex flex-col gap-3">
-          {waiting.map((a, i) => {
-            const fmt = formatLabel(a);
-            return (
-              <HubCard
-                key={a.id}
-                anime={a}
-                theme={theme}
-                index={i}
-                onOpen={() => openRow(a)}
-                chip={
-                  <>
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-bold',
-                        theme.chip,
-                      )}
-                    >
-                      🗓️ {a.release_label ?? 'Datum unbekannt'}
-                    </span>
-                    {fmt && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-[0.65rem] font-bold text-muted">
-                        {fmt}
-                      </span>
-                    )}
-                    {a.is_placeholder && (
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-bold',
-                          categoryTheme.neuerscheinung.chip,
-                        )}
-                      >
-                        ⏳ Platzhalter
-                      </span>
-                    )}
-                  </>
-                }
-              />
-            );
-          })}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {waiting.map((a, i) => (
+            <ContinuationCard key={a.id} anime={a} index={i} onOpen={() => openRow(a)} />
+          ))}
         </div>
       )}
     </div>
