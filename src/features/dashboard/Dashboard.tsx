@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { useGroupedAnimes } from '@/hooks/useAnimes';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -8,18 +8,32 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { NeonTicket } from '@/features/current/NeonTicket';
 import { ReleaseCard } from '@/features/continuation/ReleaseCard';
 import { useUIStore } from '@/store/ui';
+import type { AnimeRow } from '@/types/db';
+import { WatchedIcon, PlayIcon, NextIcon, CompassIcon } from '@/components/icons/CategoryIcons';
 
 export function Dashboard() {
   const { username } = useAuth();
   const { grouped, isLoading, isError, refetch } = useGroupedAnimes();
   const openAddModal = useUIStore((s) => s.openAddModal);
 
-  const released = grouped.nextSeason.filter((a) => a.is_released);
+  // Released continuations for "Noch zu schauen": only concrete, clickable
+  // entries (a MAL id), de-duplicated so migrated/synced twins don't stack.
+  const released = useMemo(() => {
+    const seen = new Set<number>();
+    const out: AnimeRow[] = [];
+    for (const a of grouped.nextSeason) {
+      if (!a.is_released || !a.mal_id) continue;
+      if (seen.has(a.mal_id)) continue;
+      seen.add(a.mal_id);
+      out.push(a);
+    }
+    return out;
+  }, [grouped.nextSeason]);
 
   return (
     <div className="mx-auto max-w-[950px] animate-stagger">
       <p className="mb-5 text-lg font-bold sm:hidden">
-        Hi <span className="text-muted">{username || 'du'}</span> 👋
+        Hi <span className="text-muted">{username || 'du'}</span>
       </p>
 
       {isError ? (
@@ -32,47 +46,40 @@ export function Dashboard() {
           <div className="mb-8 grid grid-cols-2 gap-3.5" style={{ gridAutoRows: 'minmax(110px,auto)' }}>
             <Link
               to="/watched"
-              className="col-span-1 row-span-2 flex flex-col items-center justify-center rounded-xl2 border border-green/20 bg-gradient-to-br from-green/15 to-green/[0.02] p-6 text-center shadow-card transition hover:-translate-y-1"
+              className="hover-lift col-span-1 row-span-2 flex flex-col items-center justify-center rounded-xl2 border border-green/20 bg-gradient-to-br from-green/15 to-green/[0.02] p-6 text-center text-green shadow-card"
             >
-              <span className="text-4xl text-green" aria-hidden>
-                📚
-              </span>
-              <h3 className="mt-2 text-5xl font-extrabold leading-none text-green">
-                {grouped.counts.watched}
-              </h3>
-              <span className="mt-1 text-xs font-bold uppercase tracking-wide text-green">
-                Geschaut
-              </span>
+              <WatchedIcon className="h-8 w-8" />
+              <h3 className="mt-2 text-5xl font-extrabold leading-none">{grouped.counts.watched}</h3>
+              <span className="mt-1 text-xs font-bold uppercase tracking-wide">Geschaut</span>
             </Link>
 
             <BentoRow
               to="/current"
-              icon="▶️"
+              icon={<PlayIcon className="h-6 w-6" />}
               label="Gerade am Schauen"
-              count={grouped.counts.current}
               color="neon"
             />
             <BentoRow
               to="/continuation"
-              icon="🔮"
+              icon={<NextIcon className="h-6 w-6" />}
               label="Fortsetzung folgt"
               count={grouped.counts.nextSeason}
               color="purple"
             />
             <Link
               to="/discover"
-              className="col-span-2 flex items-center gap-3 rounded-xl2 border border-blue/30 bg-gradient-to-br from-blue/10 to-blue/[0.02] p-5 shadow-card transition hover:-translate-y-1"
+              className="hover-lift col-span-2 flex items-center gap-3 rounded-xl2 border border-blue/30 bg-gradient-to-br from-blue/10 to-blue/[0.02] p-5 shadow-card"
             >
-              <span className="text-2xl text-blue" aria-hidden>
-                🧭
-              </span>
+              <CompassIcon className="h-6 w-6 text-blue" />
               <span className="font-bold">Neue Animes entdecken</span>
               <span className="ml-auto text-blue">→</span>
             </Link>
           </div>
 
           {/* Gerade am Schauen */}
-          <SectionTitle icon="▶️">Gerade am Schauen</SectionTitle>
+          <SectionTitle icon={<PlayIcon className="h-4 w-4 text-accent-neon" />}>
+            Gerade am Schauen
+          </SectionTitle>
           {grouped.current.length === 0 ? (
             <EmptyState
               title="Nichts am Laufen"
@@ -99,7 +106,7 @@ export function Dashboard() {
               hint="Sobald eine verfolgte Fortsetzung erscheint, taucht sie hier auf."
             />
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            <div className="grid grid-cols-3 gap-3 md:grid-cols-4">
               {released.map((a) => (
                 <ReleaseCard key={a.id} anime={a} />
               ))}
@@ -119,9 +126,9 @@ function BentoRow({
   color,
 }: {
   to: string;
-  icon: string;
+  icon: ReactNode;
   label: string;
-  count: number;
+  count?: number;
   color: 'neon' | 'purple';
 }) {
   const styles =
@@ -131,23 +138,23 @@ function BentoRow({
   return (
     <Link
       to={to}
-      className={`relative flex items-center gap-3 rounded-xl2 border bg-gradient-to-br p-4 shadow-card transition hover:-translate-y-1 ${styles}`}
+      className={`hover-lift relative flex items-center gap-3 rounded-xl2 border bg-gradient-to-br p-4 shadow-card ${styles}`}
     >
-      <span className="text-2xl" aria-hidden>
-        {icon}
-      </span>
+      {icon}
       <span className="text-sm font-bold leading-tight text-ink">{label}</span>
-      <span className="absolute right-3 top-3 rounded-lg bg-white px-2 py-0.5 text-xs font-extrabold text-accent-purple">
-        {count}
-      </span>
+      {count !== undefined && (
+        <span className="absolute right-3 top-3 rounded-lg bg-white px-2 py-0.5 text-xs font-extrabold text-accent-purple">
+          {count}
+        </span>
+      )}
     </Link>
   );
 }
 
-function SectionTitle({ icon, children }: { icon: string; children: ReactNode }) {
+function SectionTitle({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return (
     <h3 className="mb-4 mt-8 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted">
-      <span aria-hidden>{icon}</span>
+      {icon}
       {children}
     </h3>
   );

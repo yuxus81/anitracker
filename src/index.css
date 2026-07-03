@@ -78,6 +78,23 @@
   .link {
     @apply font-semibold text-accent-neon transition hover:text-white;
   }
+
+  /* Pointer-only lift: entries grow slightly and rise on hover. Guarded so it
+     never fires on touch (where :hover sticks) and respects reduced-motion. */
+  .hover-lift {
+    transition:
+      transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.22s ease,
+      border-color 0.22s ease;
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .hover-lift:hover {
+      transform: translateY(-4px) scale(1.03);
+    }
+  }
+  .hover-press {
+    @apply transition active:scale-[0.97];
+  }
 }
 
 @layer utilities {
@@ -102,5 +119,8 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .hover-lift:hover {
+    transform: none !important;
   }
 }
