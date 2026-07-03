@@ -29,7 +29,7 @@ export function PosterCard({ anime }: { anime: JikanAnime }) {
           </span>
         ) : null}
       </div>
-      <p className="mt-1.5 line-clamp-2 text-xs font-semibold leading-tight text-ink/90">
+      <p className="mt-2 line-clamp-2 text-sm font-semibold leading-tight text-ink/90">
         {getBestTitle(anime)}
       </p>
     </button>
