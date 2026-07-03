@@ -4,15 +4,17 @@ import { cn } from '@/utils/cn';
 export type ActionVariant = 'neon' | 'purple' | 'danger';
 
 /**
- * Modern, solid action button for popups. Positive actions are gradient-filled
- * in the app's accent colors (crisp, high-contrast); destructive stays quiet and
- * tinted so it never competes with the primary action. No glassmorphism.
+ * Neon-outline action button for popups. No solid color fill — each variant is a
+ * translucent tint behind a glowing colored hairline, with the label in the
+ * accent color itself. Reads as a quiet neon sign rather than a candy-filled
+ * button; the soft outer glow gives depth without shouting.
  */
 const VARIANTS: Record<ActionVariant, string> = {
-  neon: 'bg-gradient-to-br from-accent-neon to-[#00bfa8] text-[#04231f] shadow-[0_8px_20px_-10px_rgba(0,245,212,0.9)] hover:brightness-110',
+  neon: 'border border-accent-neon/50 bg-accent-neon/10 text-accent-neon shadow-[0_0_22px_-8px_rgba(0,245,212,0.75)] hover:bg-accent-neon/[0.18] hover:border-accent-neon',
   purple:
-    'bg-gradient-to-br from-accent-purple to-blue text-white shadow-[0_8px_20px_-10px_rgba(138,43,226,0.9)] hover:brightness-110',
-  danger: 'border border-danger/30 bg-danger/[0.12] text-[#ff8791] hover:bg-danger/20',
+    'border border-accent-purple/55 bg-accent-purple/10 text-[#c9a8ff] shadow-[0_0_22px_-8px_rgba(138,43,226,0.75)] hover:bg-accent-purple/[0.18] hover:border-accent-purple',
+  danger:
+    'border border-danger/40 bg-danger/10 text-[#ff8791] shadow-[0_0_22px_-10px_rgba(255,71,87,0.7)] hover:bg-danger/[0.18] hover:border-danger/60',
 };
 
 interface ActionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

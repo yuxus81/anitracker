@@ -7,7 +7,8 @@ import { cn } from '@/utils/cn';
 export interface HubCardProps {
   anime: AnimeRow;
   theme: CategoryTheme;
-  chip: ReactNode;
+  /** Optional status/date chip row. Omit for a clean cover + title tile. */
+  chip?: ReactNode;
   /** Position in its section, drives the staggered entrance delay. */
   index?: number;
   /** One-time celebratory glow on mount (for new releases). */
@@ -23,39 +24,39 @@ export function HubCard({ anime, theme, chip, index = 0, sheen, onOpen }: HubCar
       onClick={onOpen}
       aria-label={`Details zu ${anime.title}`}
       className={cn(
-        'hover-lift flex w-full items-center gap-3.5 rounded-xl2 border p-3 text-left shadow-card',
+        'hover-lift flex w-full items-center gap-4 rounded-xl2 border p-3.5 text-left shadow-card',
         sheen ? 'animate-sheen' : 'hub-card',
         theme.tint,
       )}
       style={{ animationDelay: `${Math.min(index, 10) * 60}ms` }}
     >
-      <span className={cn('h-[88px] w-[3px] flex-shrink-0 rounded-full', theme.bar)} aria-hidden />
+      <span className={cn('h-[150px] w-[4px] flex-shrink-0 rounded-full', theme.bar)} aria-hidden />
 
       {anime.cover_url ? (
         <img
           src={anime.cover_url}
           alt=""
           loading="lazy"
-          className="h-[88px] w-[62px] flex-shrink-0 rounded-lg object-cover"
+          className="h-[150px] w-[106px] flex-shrink-0 rounded-xl object-cover shadow-card"
         />
       ) : (
         <span
           className={cn(
-            'grid h-[88px] w-[62px] flex-shrink-0 place-items-center rounded-lg border',
+            'grid h-[150px] w-[106px] flex-shrink-0 place-items-center rounded-xl border',
             theme.tint,
             theme.text,
           )}
         >
-          <FilmIcon className="h-7 w-7" />
+          <FilmIcon className="h-10 w-10" />
         </span>
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-semibold">{anime.title}</p>
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">{chip}</div>
+        <p className="line-clamp-2 text-lg font-bold leading-snug">{anime.title}</p>
+        {chip && <div className="mt-2 flex flex-wrap items-center gap-1.5">{chip}</div>}
       </div>
 
-      <span className="flex-shrink-0 pr-1 text-xl text-muted/50" aria-hidden>
+      <span className="flex-shrink-0 pr-1 text-2xl text-muted/50" aria-hidden>
         ›
       </span>
     </button>

@@ -121,17 +121,17 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
 
   const actions: Action[] = [];
   if (row.category === 'watched') {
-    actions.push({ label: '🔮 Fortsetzung prüfen', variant: 'neon', onClick: checkFranchise });
+    actions.push({ label: 'Fortsetzung prüfen', variant: 'neon', onClick: checkFranchise });
   } else if (row.category === 'next_season' && !row.is_released) {
-    actions.push({ label: '✅ Als erschienen', variant: 'purple', onClick: markReleased });
+    actions.push({ label: 'Als erschienen', variant: 'purple', onClick: markReleased });
   } else if (row.category === 'next_season' && row.is_released) {
-    actions.push({ label: '▶️ Jetzt schauen', variant: 'neon', onClick: startWatching });
+    actions.push({ label: 'Jetzt schauen', variant: 'neon', onClick: startWatching });
   } else if (row.category === 'watchlist') {
-    actions.push({ label: '▶️ Jetzt schauen', variant: 'neon', onClick: startWatching });
+    actions.push({ label: 'Jetzt schauen', variant: 'neon', onClick: startWatching });
   } else if (row.category === 'current') {
-    actions.push({ label: '🏁 Abschließen', variant: 'neon', onClick: checkFranchise });
+    actions.push({ label: 'Abschließen', variant: 'neon', onClick: checkFranchise });
   }
-  actions.push({ label: '🗑️ Entfernen', variant: 'danger', onClick: remove });
+  actions.push({ label: 'Entfernen', variant: 'danger', onClick: remove });
 
   return (
     <div className="text-center">
@@ -282,10 +282,10 @@ function DiscoverDetail({ malId, onClose }: { malId: number; onClose: () => void
       ) : (
         <div className="grid grid-cols-2 gap-2.5">
           <ActionButton variant="purple" loading={addAnime.isPending} onClick={addToWatchlist}>
-            🔖 Watchlist
+            Watchlist
           </ActionButton>
           <ActionButton variant="neon" onClick={markWatched}>
-            ✅ Schon gesehen
+            Schon gesehen
           </ActionButton>
         </div>
       )}
