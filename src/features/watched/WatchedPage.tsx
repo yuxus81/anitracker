@@ -1,44 +1,98 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { useGroupedAnimes, useDeleteAnime } from '@/hooks/useAnimes';
+import { useGroupedAnimes, useDeleteAnime, useUpdateAnime } from '@/hooks/useAnimes';
 import { useDetailStore } from '@/features/shared/detailStore';
 import { useFranchiseStore } from '@/features/franchise/franchiseStore';
-import { useUIStore } from '@/store/ui';
+import { useUIStore, toast } from '@/store/ui';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ListSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
+import { categoryTheme, type CategoryTheme } from '@/theme/categoryTheme';
+import { useThemeGlow } from '@/theme/useThemeGlow';
 import { cn } from '@/utils/cn';
-import type { AnimeRow, AnimeStatus } from '@/types/db';
+import type { AnimeRow } from '@/types/db';
+import { HubCard, HubIconBtn } from './HubCard';
 
-type StatusMeta = { label: string; icon: string; badge: string };
+function Chip({ theme, children }: { theme: CategoryTheme; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-bold',
+        theme.chip,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
 
-const STATUS_META: Partial<Record<AnimeStatus, StatusMeta>> = {
-  limbo: { label: 'Sucht Neuigkeiten', icon: '🔎', badge: 'text-orange border-orange/40 bg-orange/10' },
-  active: { label: 'Gesehen', icon: '✅', badge: 'text-green border-green/40 bg-green/10' },
-  dead: { label: 'Abgeschlossen', icon: '🏁', badge: 'text-muted border-white/15 bg-white/5' },
-};
-
-const SECTION_ORDER: Array<{ status: AnimeStatus; title: string }> = [
-  { status: 'limbo', title: '🔎 Sucht Neuigkeiten' },
-  { status: 'active', title: '✅ Gesehen' },
-  { status: 'dead', title: '🏁 Abgeschlossen' },
-];
+function SectionHead({ theme, count }: { theme: CategoryTheme; count: number }) {
+  return (
+    <div className="mb-3 flex items-center gap-2">
+      <span className={cn('h-2 w-2 rounded-full', theme.dot)} aria-hidden />
+      <h3 className={cn('text-xs font-bold uppercase tracking-wide', theme.text)}>{theme.label}</h3>
+      <span className="text-[0.7rem] text-muted">{count}</span>
+    </div>
+  );
+}
 
 export function WatchedPage() {
   const { grouped, isLoading, isError, refetch } = useGroupedAnimes();
   const openAddModal = useUIStore((s) => s.openAddModal);
+  const openDetail = useDetailStore((s) => s.open);
+  const openFranchise = useFranchiseStore((s) => s.open);
+  const del = useDeleteAnime();
+  const update = useUpdateAnime();
   const [onlyLimbo, setOnlyLimbo] = useState(false);
 
-  const watched = grouped.watched;
+  useThemeGlow(categoryTheme.gesehen.accentHex);
+
+  const watched = grouped.watched; // active | dead | limbo (superseded excluded)
   const limboCount = watched.filter((a) => a.status === 'limbo').length;
+  const seen = onlyLimbo ? watched.filter((a) => a.status === 'limbo') : watched;
+  const waiting = onlyLimbo ? [] : grouped.nextSeason.filter((a) => !a.is_released);
+  const releases = onlyLimbo ? [] : grouped.nextSeason.filter((a) => a.is_released);
+
+  const isEmpty = watched.length === 0 && grouped.nextSeason.length === 0;
+
+  function themeFor(a: AnimeRow): CategoryTheme {
+    return a.status === 'limbo' ? categoryTheme.suchtNeuigkeiten : categoryTheme.gesehen;
+  }
+
+  function markReleased(a: AnimeRow) {
+    update.mutate({
+      id: a.id,
+      patch: {
+        is_released: true,
+        last_updated_at: new Date().toISOString(),
+        release_label: 'Verfügbar',
+      },
+    });
+    toast.success(`„${a.title}" als erschienen markiert`, '🔥');
+  }
+
+  function startWatching(a: AnimeRow) {
+    update.mutate({
+      id: a.id,
+      patch: {
+        category: 'current',
+        status: 'active',
+        is_released: false,
+        is_placeholder: false,
+        sort_order: Date.now(),
+      },
+    });
+    toast.success(`„${a.title}" ist jetzt in „Am Schauen"`, '▶️');
+  }
 
   return (
-    <div className="animate-stagger">
+    <div className="page-fade">
       <PageHeader
         title="Geschaut"
         count={grouped.counts.watched}
+        accent="gesehen"
         action={
           <Button size="sm" variant="ghost" onClick={() => openAddModal('watched')}>
             + Hinzufügen
@@ -51,9 +105,9 @@ export function WatchedPage() {
           type="button"
           onClick={() => setOnlyLimbo((v) => !v)}
           className={cn(
-            'mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold transition',
+            'hover-press mb-5 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold transition',
             onlyLimbo
-              ? 'border-orange bg-orange/15 text-orange'
+              ? 'border-accent-neon bg-accent-neon/15 text-accent-neon'
               : 'border-white/10 bg-white/5 text-muted hover:text-white',
           )}
         >
@@ -65,9 +119,9 @@ export function WatchedPage() {
         <ErrorState onRetry={() => refetch()} />
       ) : isLoading ? (
         <ListSkeleton count={5} />
-      ) : watched.length === 0 ? (
+      ) : isEmpty ? (
         <EmptyState
-          title="Noch nichts als gesehen markiert"
+          title="Deine Bibliothek ist leer"
           hint="Schließe eine Serie ab oder füge sie direkt hier hinzu."
           action={
             <button className="link" onClick={() => openAddModal('watched')}>
@@ -76,106 +130,128 @@ export function WatchedPage() {
           }
         />
       ) : (
-        SECTION_ORDER.filter((s) => !onlyLimbo || s.status === 'limbo').map((section) => {
-          const items = watched.filter((a) => a.status === section.status);
-          if (items.length === 0) return null;
-          return (
-            <section key={section.status} className="mb-7">
-              <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">
-                {section.title} · {items.length}
-              </h3>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {items.map((a) => (
-                  <WatchedCard key={a.id} anime={a} />
+        <>
+          {seen.length > 0 && (
+            <section className="mb-7">
+              <SectionHead theme={categoryTheme.gesehen} count={watched.length} />
+              <div className="flex flex-col gap-3">
+                {seen.map((a, i) => {
+                  const t = themeFor(a);
+                  return (
+                    <HubCard
+                      key={a.id}
+                      anime={a}
+                      theme={t}
+                      index={i}
+                      onOpen={a.mal_id ? () => openDetail(a.mal_id!) : undefined}
+                      chip={
+                        a.status === 'limbo' ? (
+                          <span
+                            className={cn(
+                              'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-bold animate-radar',
+                              t.chip,
+                            )}
+                          >
+                            🔎 Sucht Neuigkeiten
+                          </span>
+                        ) : (
+                          <Chip theme={t}>✅ Gesehen</Chip>
+                        )
+                      }
+                      actions={
+                        <>
+                          <HubIconBtn
+                            label="Fortsetzung prüfen"
+                            onClick={() =>
+                              openFranchise({
+                                malId: a.mal_id,
+                                title: a.title,
+                                coverUrl: a.cover_url,
+                                existingId: a.id,
+                              })
+                            }
+                          >
+                            🔮
+                          </HubIconBtn>
+                          <HubIconBtn label="Entfernen" onClick={() => del.mutate(a.id)}>
+                            🗑️
+                          </HubIconBtn>
+                        </>
+                      }
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {waiting.length > 0 && (
+            <section className="mb-7">
+              <SectionHead theme={categoryTheme.fortsetzung} count={waiting.length} />
+              <div className="flex flex-col gap-3">
+                {waiting.map((a, i) => (
+                  <HubCard
+                    key={a.id}
+                    anime={a}
+                    theme={categoryTheme.fortsetzung}
+                    index={i}
+                    onOpen={a.mal_id ? () => openDetail(a.mal_id!) : undefined}
+                    chip={
+                      <>
+                        <Chip theme={categoryTheme.fortsetzung}>
+                          {a.release_label ?? 'Datum unbekannt'}
+                        </Chip>
+                        {a.is_placeholder && (
+                          <Chip theme={categoryTheme.neuerscheinung}>⏳ Platzhalter</Chip>
+                        )}
+                      </>
+                    }
+                    actions={
+                      <>
+                        <HubIconBtn label="Als erschienen markieren" onClick={() => markReleased(a)}>
+                          ✅
+                        </HubIconBtn>
+                        <HubIconBtn label="Entfernen" onClick={() => del.mutate(a.id)}>
+                          🗑️
+                        </HubIconBtn>
+                      </>
+                    }
+                  />
                 ))}
               </div>
             </section>
-          );
-        })
+          )}
+
+          {releases.length > 0 && (
+            <section>
+              <SectionHead theme={categoryTheme.neuerscheinung} count={releases.length} />
+              <div className="flex flex-col gap-3">
+                {releases.map((a, i) => (
+                  <HubCard
+                    key={a.id}
+                    anime={a}
+                    theme={categoryTheme.neuerscheinung}
+                    index={i}
+                    sheen
+                    onOpen={a.mal_id ? () => openDetail(a.mal_id!) : undefined}
+                    chip={<Chip theme={categoryTheme.neuerscheinung}>✨ Jetzt verfügbar</Chip>}
+                    actions={
+                      <>
+                        <HubIconBtn label="Jetzt schauen" onClick={() => startWatching(a)}>
+                          ▶️
+                        </HubIconBtn>
+                        <HubIconBtn label="Entfernen" onClick={() => del.mutate(a.id)}>
+                          🗑️
+                        </HubIconBtn>
+                      </>
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </div>
-  );
-}
-
-function WatchedCard({ anime }: { anime: AnimeRow }) {
-  const del = useDeleteAnime();
-  const openDetail = useDetailStore((s) => s.open);
-  const openFranchise = useFranchiseStore((s) => s.open);
-  const meta = STATUS_META[anime.status] ?? STATUS_META.active!;
-
-  return (
-    <div className="flex items-center gap-3 rounded-xl2 border border-white/5 bg-card p-2.5 shadow-card">
-      <button
-        type="button"
-        onClick={() => anime.mal_id && openDetail(anime.mal_id)}
-        disabled={!anime.mal_id}
-        aria-label={`Details zu ${anime.title}`}
-        className="flex-shrink-0"
-      >
-        {anime.cover_url ? (
-          <img
-            src={anime.cover_url}
-            alt=""
-            loading="lazy"
-            className="h-[72px] w-[50px] rounded-lg object-cover"
-          />
-        ) : (
-          <div className="grid h-[72px] w-[50px] place-items-center rounded-lg bg-white/5">🎬</div>
-        )}
-      </button>
-
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-semibold">{anime.title}</p>
-        <span
-          className={cn(
-            'mt-1 inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-bold',
-            meta.badge,
-          )}
-        >
-          {meta.icon} {meta.label}
-        </span>
-      </div>
-
-      <div className="flex flex-shrink-0 items-center gap-1">
-        <IconBtn
-          label="Fortsetzung prüfen"
-          onClick={() =>
-            openFranchise({
-              malId: anime.mal_id,
-              title: anime.title,
-              coverUrl: anime.cover_url,
-              existingId: anime.id,
-            })
-          }
-        >
-          🔮
-        </IconBtn>
-        <IconBtn label="Entfernen" onClick={() => del.mutate(anime.id)}>
-          🗑️
-        </IconBtn>
-      </div>
-    </div>
-  );
-}
-
-function IconBtn({
-  label,
-  onClick,
-  children,
-}: {
-  label: string;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      title={label}
-      className="grid h-9 w-9 place-items-center rounded-lg bg-white/5 text-base transition hover:bg-white/10"
-    >
-      {children}
-    </button>
   );
 }

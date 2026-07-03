@@ -8,7 +8,6 @@ import { Dashboard } from '@/features/dashboard/Dashboard';
 import { WatchedPage } from '@/features/watched/WatchedPage';
 import { DiscoverPage } from '@/features/discover/DiscoverPage';
 import { WatchlistPage } from '@/features/watchlist/WatchlistPage';
-import { ContinuationPage } from '@/features/continuation/ContinuationPage';
 import { CurrentPage } from '@/features/current/CurrentPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { useDailySync } from '@/features/sync/useDailySync';
@@ -30,7 +29,7 @@ export function App() {
             <Route path="/watched" element={<WatchedPage />} />
             <Route path="/discover" element={<DiscoverPage />} />
             <Route path="/watchlist" element={<WatchlistPage />} />
-            <Route path="/continuation" element={<ContinuationPage />} />
+            <Route path="/continuation" element={<Navigate to="/watched" replace />} />
             <Route path="/current" element={<CurrentPage />} />
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />

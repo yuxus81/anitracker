@@ -25,12 +25,16 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { cn } from '@/utils/cn';
+import { categoryTheme } from '@/theme/categoryTheme';
+import { useThemeGlow } from '@/theme/useThemeGlow';
 import type { AnimeRow } from '@/types/db';
 
 export function WatchlistPage() {
   const { grouped, isLoading, isError, refetch } = useGroupedAnimes();
   const reorder = useReorder();
   const openAddModal = useUIStore((s) => s.openAddModal);
+
+  useThemeGlow(categoryTheme.watchlist.accentHex);
 
   const [items, setItems] = useState<AnimeRow[]>([]);
   const [rouletteOpen, setRouletteOpen] = useState(false);
@@ -59,6 +63,7 @@ export function WatchlistPage() {
       <PageHeader
         title="Watchlist"
         count={grouped.counts.watchlist}
+        accent="watchlist"
         action={
           <div className="flex gap-2">
             {items.length > 1 && (

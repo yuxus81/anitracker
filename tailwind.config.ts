@@ -43,12 +43,12 @@ export default {
       },
       keyframes: {
         staggerFadeIn: {
-          from: { opacity: '0', transform: 'translateY(20px)' },
+          from: { opacity: '0', transform: 'translateY(12px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         winnerPop: {
           '0%': { transform: 'scale(0.9)' },
-          '50%': { transform: 'scale(1.1)' },
+          '50%': { transform: 'scale(1.05)' },
           '100%': { transform: 'scale(1)' },
         },
         skelLoad: {
@@ -57,8 +57,26 @@ export default {
         },
         iconBounce: {
           '0%': { transform: 'scale(1)' },
-          '50%': { transform: 'scale(1.4)' },
+          '50%': { transform: 'scale(1.15)' },
           '100%': { transform: 'scale(1)' },
+        },
+        radar: {
+          '0%': { boxShadow: '0 0 0 0 rgba(0,245,212,0.45)' },
+          '70%': { boxShadow: '0 0 0 6px rgba(0,245,212,0)' },
+          '100%': { boxShadow: '0 0 0 0 rgba(0,245,212,0)' },
+        },
+        sheen: {
+          '0%': { opacity: '0', transform: 'translateY(8px)' },
+          '60%': { boxShadow: '0 0 22px rgba(255,0,85,0.28)' },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0)',
+            boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+          },
+        },
+        pageFade: {
+          from: { opacity: '0', transform: 'translateY(6px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
         },
         toastIn: {
           from: { opacity: '0', transform: 'translate(-50%, -20px)' },
@@ -75,12 +93,15 @@ export default {
       animation: {
         // Smooth ease-out-expo everywhere. Any visual "pop" (overshoot) is encoded
         // in the keyframe scale values, not in tacky elastic/bounce timing curves.
-        stagger: 'staggerFadeIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards',
+        stagger: 'staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards',
         'winner-pop': 'winnerPop 0.6s cubic-bezier(0.16,1,0.3,1) forwards',
         skeleton: 'skelLoad 1.5s infinite',
         'icon-bounce': 'iconBounce 0.4s cubic-bezier(0.16,1,0.3,1)',
         'toast-in': 'toastIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards',
         'spin-slow': 'spin 1s linear infinite',
+        radar: 'radar 2.4s ease-out infinite',
+        sheen: 'sheen 0.6s cubic-bezier(0.16,1,0.3,1) backwards',
+        'page-fade': 'pageFade 0.4s cubic-bezier(0.16,1,0.3,1) both',
       },
     },
   },

@@ -20,6 +20,7 @@ import {
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
+import { RepairModal } from '@/features/maintenance/RepairModal';
 import { toast } from '@/store/ui';
 
 export function SettingsPage() {
@@ -33,6 +34,7 @@ export function SettingsPage() {
       <ProfileCard initialUsername={username} />
       <PasswordCard />
       <NotificationsCard />
+      <LibraryCard />
       <AccountCard userId={user?.id ?? null} email={user?.email ?? ''} qc={qc} />
 
       <p className="mt-8 text-center text-xs text-muted">YP AniTracker · v2.0</p>
@@ -196,6 +198,22 @@ function NotificationsCard() {
           />
         </button>
       </div>
+    </Card>
+  );
+}
+
+function LibraryCard() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card title="Bibliothek">
+      <p className="mb-4 text-sm text-muted">
+        Prüft deine Sammlung auf fehlende Cover und doppelte Einträge. Du entscheidest, was
+        bereinigt wird.
+      </p>
+      <Button variant="ghost" fullWidth onClick={() => setOpen(true)}>
+        Scan starten
+      </Button>
+      <RepairModal open={open} onClose={() => setOpen(false)} />
     </Card>
   );
 }
