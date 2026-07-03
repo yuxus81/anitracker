@@ -127,43 +127,38 @@ function SortableCard({ anime }: { anime: AnimeRow }) {
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        'relative overflow-hidden rounded-xl2 border border-white/5 bg-card shadow-card',
-        isDragging && 'ring-2 ring-accent-purple',
-      )}
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        aria-label="Verschieben"
-        className="absolute left-1.5 top-1.5 z-10 grid h-8 w-8 cursor-grab touch-none place-items-center rounded-lg bg-black/60 text-white/80 active:cursor-grabbing"
-      >
-        ⠿
-      </button>
-
-      <button
-        type="button"
-        onClick={() => openRow(anime)}
-        aria-label={`Details zu ${anime.title}`}
-        className="hover-lift block w-full text-left"
-      >
-        <span className="block aspect-[2/3] w-full bg-black/30">
-          {anime.cover_url && (
-            <img
-              src={anime.cover_url}
-              alt=""
-              loading="lazy"
-              className="h-full w-full object-cover"
-            />
+    <div ref={setNodeRef} style={style} className="group">
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => openRow(anime)}
+          aria-label={`Details zu ${anime.title}`}
+          className={cn(
+            'hover-lift block aspect-[2/3] w-full overflow-hidden rounded-xl2 bg-black/30 shadow-card',
+            isDragging && 'ring-2 ring-accent-purple',
           )}
-        </span>
-        <span className="block p-2">
-          <span className="block truncate text-xs font-bold">{anime.title}</span>
-        </span>
-      </button>
+        >
+          {anime.cover_url ? (
+            <img src={anime.cover_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+          ) : (
+            <span className="grid h-full w-full place-items-center text-3xl text-white/20">🎬</span>
+          )}
+        </button>
+
+        {/* Compact, unobtrusive drag grip — sibling (not nested) button. */}
+        <button
+          {...attributes}
+          {...listeners}
+          aria-label="Verschieben"
+          className="absolute right-1.5 top-1.5 z-10 grid h-6 w-6 cursor-grab touch-none place-items-center rounded-md bg-black/45 text-[11px] leading-none text-white/60 backdrop-blur-sm transition hover:text-white active:cursor-grabbing"
+        >
+          ⠿
+        </button>
+      </div>
+
+      <p className="mt-1.5 line-clamp-2 px-0.5 text-xs font-semibold leading-snug text-ink/90">
+        {anime.title}
+      </p>
     </div>
   );
 }

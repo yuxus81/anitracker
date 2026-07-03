@@ -96,6 +96,32 @@
   .hub-card {
     animation: staggerFadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
+
+  /* Reusable per-item entrance. Pair with an inline animation-delay to stagger a
+     list/grid/timeline. `backwards` holds the hidden start frame through the
+     delay, then hands back to the resting state (and any .hover-lift). */
+  .stagger-item {
+    animation: staggerFadeIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  }
+
+  /* Pronounced sequential "pop" for the franchise timeline: each node scales up
+     fast from small and decelerates smoothly (ease-out-expo, no elastic bounce).
+     Pair with an inline animation-delay (~80ms per node) so entries visibly
+     appear one by one — 1, 2, 3… */
+  .timeline-pop {
+    animation: timelinePop 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+}
+
+@keyframes timelinePop {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.82);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 @layer utilities {
