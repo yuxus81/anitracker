@@ -83,17 +83,29 @@
      never fires on touch (where :hover sticks) and respects reduced-motion. */
   .hover-lift {
     transition:
-      transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
-      box-shadow 0.22s ease,
-      border-color 0.22s ease;
+      transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+      box-shadow 0.28s ease,
+      border-color 0.28s ease;
   }
   @media (hover: hover) and (pointer: fine) {
     .hover-lift:hover {
-      transform: translateY(-4px) scale(1.03);
+      transform: translateY(-2px) scale(1.01);
     }
   }
   .hover-press {
-    @apply transition active:scale-[0.97];
+    @apply transition active:scale-[0.98];
+  }
+
+  /* Soft page-level fade-up on route change. */
+  .page-fade {
+    @apply animate-page-fade;
+  }
+
+  /* Staggered entrance for hub cards. `backwards` fill applies the hidden start
+     frame during the per-card animation-delay, then reverts to the resting
+     state so `.hover-lift`'s transform is not locked after the animation. */
+  .hub-card {
+    animation: staggerFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   }
 }
 
