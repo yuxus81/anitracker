@@ -1,3 +1,5 @@
+import type { AnimeRow } from '@/types/db';
+
 export type CategoryKey =
   | 'gesehen'
   | 'suchtNeuigkeiten'
@@ -90,3 +92,26 @@ export const categoryTheme: Record<CategoryKey, CategoryTheme> = {
     tint: 'bg-accent-neon/[0.06] border-accent-neon/25',
   },
 };
+
+/**
+ * Maps a stored library row to its identity color key. This is the single place
+ * that translates the data model (category + status + release flag) into a
+ * visual theme, so cards, badges and the detail popup all agree on the color.
+ */
+export function categoryKeyForRow(row: AnimeRow): CategoryKey {
+  switch (row.category) {
+    case 'watched':
+      return row.status === 'limbo' ? 'suchtNeuigkeiten' : 'gesehen';
+    case 'next_season':
+      return row.is_released ? 'neuerscheinung' : 'fortsetzung';
+    case 'watchlist':
+      return 'watchlist';
+    case 'current':
+      return 'aktuell';
+  }
+}
+
+/** Convenience: the full theme object for a row. */
+export function themeForRow(row: AnimeRow): CategoryTheme {
+  return categoryTheme[categoryKeyForRow(row)];
+}
