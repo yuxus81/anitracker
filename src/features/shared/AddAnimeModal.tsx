@@ -19,6 +19,13 @@ const TARGETS: Array<{ key: AnimeCategory; label: string; icon: string }> = [
   { key: 'next_season', label: 'Fortsetzung', icon: '🔮' },
 ];
 
+const TARGET_LABEL: Record<AnimeCategory, string> = {
+  watchlist: 'Watchlist',
+  current: 'Am Schauen',
+  watched: 'Geschaut',
+  next_season: 'Fortsetzung folgt',
+};
+
 export function AddAnimeModal() {
   const open = useUIStore((s) => s.addModalOpen);
   const preset = useUIStore((s) => s.addModalPreset);
@@ -36,6 +43,13 @@ export function AddAnimeModal() {
     setLastPreset(preset);
     setTarget(preset ?? 'watchlist');
   }
+
+  // On a specific category page the target is already clear from context, so we
+  // skip the chooser and add straight into that list. The chooser only appears
+  // from Home / the global "+", where no preset is given.
+  const showChooser = preset == null;
+  const modalTitle =
+    preset == null ? 'Anime hinzufügen' : `Zu „${TARGET_LABEL[preset]}" hinzufügen`;
 
   function handleClose() {
     setQuery('');
@@ -71,28 +85,31 @@ export function AddAnimeModal() {
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Anime hinzufügen" size="md">
-      {/* Target chooser */}
-      <div className="mb-4 grid grid-cols-4 gap-2">
-        {TARGETS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTarget(t.key)}
-            className={cn(
-              'flex flex-col items-center gap-1 rounded-xl border px-2 py-3 text-xs font-semibold transition',
-              target === t.key
-                ? 'border-accent-purple bg-accent-purple/20 text-white'
-                : 'border-white/10 bg-white/5 text-muted hover:text-white',
-            )}
-          >
-            <span className="text-lg" aria-hidden>
-              {t.icon}
-            </span>
-            {t.label}
-          </button>
-        ))}
-      </div>
+    <Modal open={open} onClose={handleClose} title={modalTitle} size="md">
+      {/* Target chooser — only from Home / the global "+", where the list is
+          not implied by the current page. */}
+      {showChooser && (
+        <div className="mb-4 grid grid-cols-4 gap-2">
+          {TARGETS.map((t) => (
+            <button
+              key={t.key}
+              type="button"
+              onClick={() => setTarget(t.key)}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-xl border px-2 py-3 text-xs font-semibold transition',
+                target === t.key
+                  ? 'border-accent-purple bg-accent-purple/20 text-white'
+                  : 'border-white/10 bg-white/5 text-muted hover:text-white',
+              )}
+            >
+              <span className="text-lg" aria-hidden>
+                {t.icon}
+              </span>
+              {t.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="relative mb-4">
         <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted">

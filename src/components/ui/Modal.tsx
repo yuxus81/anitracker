@@ -35,21 +35,33 @@ export function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
+  // Keep the latest callbacks in refs so the focus/trap effect can depend on
+  // `open` alone. Depending on the callbacks made the effect re-run on every
+  // parent render (e.g. each keystroke in a search field), which stole focus
+  // back to the ✕ button and kicked the user out of the input.
+  const onCloseRef = useRef(onClose);
+  const onBackRef = useRef(onBack);
+  onCloseRef.current = onClose;
+  onBackRef.current = onBack;
+
   useScrollLock(open);
 
   useEffect(() => {
     if (!open) return;
     previouslyFocused.current = document.activeElement as HTMLElement;
 
-    // Focus the first focusable element inside the panel.
+    // Focus a text input if the panel has one (search fields etc.), otherwise
+    // the first focusable element. Runs once per open — never on re-render.
     const panel = panelRef.current;
-    const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
+    const first =
+      panel?.querySelector<HTMLElement>('input,textarea') ??
+      panel?.querySelector<HTMLElement>(FOCUSABLE);
     first?.focus();
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        (onBack ?? onClose)();
+        (onBackRef.current ?? onCloseRef.current)();
         return;
       }
       if (e.key !== 'Tab' || !panel) return;
@@ -75,7 +87,7 @@ export function Modal({
       document.removeEventListener('keydown', onKeyDown, true);
       previouslyFocused.current?.focus?.();
     };
-  }, [open, onClose, onBack]);
+  }, [open]);
 
   if (!open) return null;
 
