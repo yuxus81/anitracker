@@ -1,19 +1,18 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useGroupedAnimes, useDeleteAnime, useUpdateAnime } from '@/hooks/useAnimes';
+import { useGroupedAnimes } from '@/hooks/useAnimes';
 import { useDetailStore } from '@/features/shared/detailStore';
-import { useFranchiseStore } from '@/features/franchise/franchiseStore';
-import { useUIStore, toast } from '@/store/ui';
+import { useUIStore } from '@/store/ui';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { ListSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
+import { RepairModal } from '@/features/maintenance/RepairModal';
+import { scanLibrary } from '@/features/maintenance/repair';
 import { categoryTheme, type CategoryTheme } from '@/theme/categoryTheme';
-import { useThemeGlow } from '@/theme/useThemeGlow';
 import { cn } from '@/utils/cn';
-import type { AnimeRow } from '@/types/db';
-import { HubCard, HubIconBtn } from './HubCard';
+import { HubCard } from './HubCard';
 
 function Chip({ theme, children }: { theme: CategoryTheme; children: ReactNode }) {
   return (
@@ -41,13 +40,9 @@ function SectionHead({ theme, count }: { theme: CategoryTheme; count: number }) 
 export function WatchedPage() {
   const { grouped, isLoading, isError, refetch } = useGroupedAnimes();
   const openAddModal = useUIStore((s) => s.openAddModal);
-  const openDetail = useDetailStore((s) => s.open);
-  const openFranchise = useFranchiseStore((s) => s.open);
-  const del = useDeleteAnime();
-  const update = useUpdateAnime();
+  const openRow = useDetailStore((s) => s.openRow);
   const [onlyLimbo, setOnlyLimbo] = useState(false);
-
-  useThemeGlow(categoryTheme.gesehen.accentHex);
+  const [repairOpen, setRepairOpen] = useState(false);
 
   const watched = grouped.watched; // active | dead | limbo (superseded excluded)
   const limboCount = watched.filter((a) => a.status === 'limbo').length;
@@ -57,35 +52,10 @@ export function WatchedPage() {
 
   const isEmpty = watched.length === 0 && grouped.nextSeason.length === 0;
 
-  function themeFor(a: AnimeRow): CategoryTheme {
-    return a.status === 'limbo' ? categoryTheme.suchtNeuigkeiten : categoryTheme.gesehen;
-  }
-
-  function markReleased(a: AnimeRow) {
-    update.mutate({
-      id: a.id,
-      patch: {
-        is_released: true,
-        last_updated_at: new Date().toISOString(),
-        release_label: 'Verfügbar',
-      },
-    });
-    toast.success(`„${a.title}" als erschienen markiert`, '🔥');
-  }
-
-  function startWatching(a: AnimeRow) {
-    update.mutate({
-      id: a.id,
-      patch: {
-        category: 'current',
-        status: 'active',
-        is_released: false,
-        is_placeholder: false,
-        sort_order: Date.now(),
-      },
-    });
-    toast.success(`„${a.title}" ist jetzt in „Am Schauen"`, '▶️');
-  }
+  // Surface library problems (missing covers / duplicates) right where they show.
+  const report = useMemo(() => scanLibrary(grouped.all), [grouped.all]);
+  const dupeRows = report.duplicates.reduce((n, g) => n + g.remove.length, 0);
+  const problemCount = report.missingCovers.length + dupeRows;
 
   return (
     <div className="page-fade">
@@ -99,6 +69,22 @@ export function WatchedPage() {
           </Button>
         }
       />
+
+      {problemCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setRepairOpen(true)}
+          className="hover-press mb-4 flex w-full items-center gap-2 rounded-xl border border-orange/30 bg-orange/10 px-4 py-2.5 text-left text-sm font-semibold text-[#ff5c8a] transition hover:bg-orange/15"
+        >
+          🧹
+          <span className="min-w-0 flex-1">
+            {report.missingCovers.length > 0 && `${report.missingCovers.length} Cover fehlen`}
+            {report.missingCovers.length > 0 && dupeRows > 0 && ' · '}
+            {dupeRows > 0 && `${dupeRows} Duplikate`}
+          </span>
+          <span className="flex-shrink-0 text-xs opacity-80">Bereinigen ›</span>
+        </button>
+      )}
 
       {limboCount > 0 && (
         <button
@@ -136,16 +122,17 @@ export function WatchedPage() {
               <SectionHead theme={categoryTheme.gesehen} count={watched.length} />
               <div className="flex flex-col gap-3">
                 {seen.map((a, i) => {
-                  const t = themeFor(a);
+                  const isLimbo = a.status === 'limbo';
+                  const t = isLimbo ? categoryTheme.suchtNeuigkeiten : categoryTheme.gesehen;
                   return (
                     <HubCard
                       key={a.id}
                       anime={a}
                       theme={t}
                       index={i}
-                      onOpen={a.mal_id ? () => openDetail(a.mal_id!) : undefined}
+                      onOpen={() => openRow(a)}
                       chip={
-                        a.status === 'limbo' ? (
+                        isLimbo ? (
                           <span
                             className={cn(
                               'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.65rem] font-bold animate-radar',
@@ -157,26 +144,6 @@ export function WatchedPage() {
                         ) : (
                           <Chip theme={t}>✅ Gesehen</Chip>
                         )
-                      }
-                      actions={
-                        <>
-                          <HubIconBtn
-                            label="Fortsetzung prüfen"
-                            onClick={() =>
-                              openFranchise({
-                                malId: a.mal_id,
-                                title: a.title,
-                                coverUrl: a.cover_url,
-                                existingId: a.id,
-                              })
-                            }
-                          >
-                            🔮
-                          </HubIconBtn>
-                          <HubIconBtn label="Entfernen" onClick={() => del.mutate(a.id)}>
-                            🗑️
-                          </HubIconBtn>
-                        </>
                       }
                     />
                   );
@@ -195,7 +162,7 @@ export function WatchedPage() {
                     anime={a}
                     theme={categoryTheme.fortsetzung}
                     index={i}
-                    onOpen={a.mal_id ? () => openDetail(a.mal_id!) : undefined}
+                    onOpen={() => openRow(a)}
                     chip={
                       <>
                         <Chip theme={categoryTheme.fortsetzung}>
@@ -204,16 +171,6 @@ export function WatchedPage() {
                         {a.is_placeholder && (
                           <Chip theme={categoryTheme.neuerscheinung}>⏳ Platzhalter</Chip>
                         )}
-                      </>
-                    }
-                    actions={
-                      <>
-                        <HubIconBtn label="Als erschienen markieren" onClick={() => markReleased(a)}>
-                          ✅
-                        </HubIconBtn>
-                        <HubIconBtn label="Entfernen" onClick={() => del.mutate(a.id)}>
-                          🗑️
-                        </HubIconBtn>
                       </>
                     }
                   />
@@ -233,18 +190,8 @@ export function WatchedPage() {
                     theme={categoryTheme.neuerscheinung}
                     index={i}
                     sheen
-                    onOpen={a.mal_id ? () => openDetail(a.mal_id!) : undefined}
+                    onOpen={() => openRow(a)}
                     chip={<Chip theme={categoryTheme.neuerscheinung}>✨ Jetzt verfügbar</Chip>}
-                    actions={
-                      <>
-                        <HubIconBtn label="Jetzt schauen" onClick={() => startWatching(a)}>
-                          ▶️
-                        </HubIconBtn>
-                        <HubIconBtn label="Entfernen" onClick={() => del.mutate(a.id)}>
-                          🗑️
-                        </HubIconBtn>
-                      </>
-                    }
                   />
                 ))}
               </div>
@@ -252,6 +199,8 @@ export function WatchedPage() {
           )}
         </>
       )}
+
+      <RepairModal open={repairOpen} onClose={() => setRepairOpen(false)} />
     </div>
   );
 }

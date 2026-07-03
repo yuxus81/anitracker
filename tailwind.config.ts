@@ -91,17 +91,18 @@ export default {
         },
       },
       animation: {
-        // Smooth ease-out-expo everywhere. Any visual "pop" (overshoot) is encoded
-        // in the keyframe scale values, not in tacky elastic/bounce timing curves.
-        stagger: 'staggerFadeIn 0.5s cubic-bezier(0.16,1,0.3,1) forwards',
-        'winner-pop': 'winnerPop 0.6s cubic-bezier(0.16,1,0.3,1) forwards',
+        // Soft, unhurried ease-out everywhere. Entrances are deliberately long and
+        // gentle; any visual "pop" (overshoot) is encoded in keyframe scale values,
+        // not in tacky elastic/bounce timing curves.
+        stagger: 'staggerFadeIn 0.8s cubic-bezier(0.22,1,0.36,1) forwards',
+        'winner-pop': 'winnerPop 0.7s cubic-bezier(0.22,1,0.36,1) forwards',
         skeleton: 'skelLoad 1.5s infinite',
-        'icon-bounce': 'iconBounce 0.4s cubic-bezier(0.16,1,0.3,1)',
-        'toast-in': 'toastIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards',
+        'icon-bounce': 'iconBounce 0.5s cubic-bezier(0.22,1,0.36,1)',
+        'toast-in': 'toastIn 0.45s cubic-bezier(0.22,1,0.36,1) forwards',
         'spin-slow': 'spin 1s linear infinite',
-        radar: 'radar 2.4s ease-out infinite',
-        sheen: 'sheen 0.6s cubic-bezier(0.16,1,0.3,1) backwards',
-        'page-fade': 'pageFade 0.4s cubic-bezier(0.16,1,0.3,1) both',
+        radar: 'radar 3s ease-out infinite',
+        sheen: 'sheen 1s cubic-bezier(0.22,1,0.36,1) backwards',
+        'page-fade': 'pageFade 0.65s cubic-bezier(0.22,1,0.36,1) both',
       },
     },
   },

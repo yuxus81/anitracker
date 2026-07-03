@@ -24,8 +24,6 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/utils/cn';
-import { categoryTheme } from '@/theme/categoryTheme';
-import { useThemeGlow } from '@/theme/useThemeGlow';
 import type { AnimeRow } from '@/types/db';
 import { NeonTicket } from './NeonTicket';
 
@@ -34,8 +32,6 @@ export function CurrentPage() {
   const reorder = useReorder();
   const openAddModal = useUIStore((s) => s.openAddModal);
   const [items, setItems] = useState<AnimeRow[]>([]);
-
-  useThemeGlow(categoryTheme.aktuell.accentHex);
 
   useEffect(() => setItems(grouped.current), [grouped.current]);
 

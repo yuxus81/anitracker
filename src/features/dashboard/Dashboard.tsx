@@ -30,6 +30,12 @@ export function Dashboard() {
     return out;
   }, [grouped.nextSeason]);
 
+  // Matches the dedicated "Fortsetzung folgt" page: only not-yet-released entries.
+  const waitingCount = useMemo(
+    () => grouped.nextSeason.filter((a) => !a.is_released).length,
+    [grouped.nextSeason],
+  );
+
   return (
     <div className="mx-auto max-w-[950px] animate-stagger">
       <p className="mb-5 text-lg font-bold sm:hidden">
@@ -63,7 +69,7 @@ export function Dashboard() {
               to="/continuation"
               icon={<NextIcon className="h-6 w-6" />}
               label="Fortsetzung folgt"
-              count={grouped.counts.nextSeason}
+              count={waitingCount}
               color="purple"
             />
             <Link

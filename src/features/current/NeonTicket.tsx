@@ -1,18 +1,22 @@
 import type { AnimeRow } from '@/types/db';
-import { useFranchiseStore } from '@/features/franchise/franchiseStore';
+import { useDetailStore } from '@/features/shared/detailStore';
 import { PlayGlyph } from '@/components/icons/CategoryIcons';
 
 /**
  * Horizontal "now watching" ticket: a dark interior framed by a neon edge and
- * glow. The round play button hands the series to the franchise timeline
- * scanner ("Abschließen"), which decides where it goes next (watched + the
- * following season as next_season).
+ * glow. Tapping anywhere opens the context popup, where "Abschließen" hands the
+ * series to the franchise timeline scanner.
  */
 export function NeonTicket({ anime }: { anime: AnimeRow }) {
-  const openFranchise = useFranchiseStore((s) => s.open);
+  const openRow = useDetailStore((s) => s.openRow);
 
   return (
-    <div className="hover-lift flex items-center gap-4 rounded-xl2 border-[1.5px] border-accent-neon/55 bg-[#0a0c12] p-3 shadow-glow-neon hover:border-accent-neon">
+    <button
+      type="button"
+      onClick={() => openRow(anime)}
+      aria-label={`Details zu ${anime.title}`}
+      className="hover-lift flex w-full items-center gap-4 rounded-xl2 border-[1.5px] border-accent-neon/55 bg-[#0a0c12] p-3 text-left shadow-glow-neon hover:border-accent-neon"
+    >
       {anime.cover_url ? (
         <img
           src={anime.cover_url}
@@ -21,32 +25,21 @@ export function NeonTicket({ anime }: { anime: AnimeRow }) {
           className="h-[84px] w-[58px] flex-shrink-0 rounded-lg object-cover"
         />
       ) : (
-        <div className="grid h-[84px] w-[58px] flex-shrink-0 place-items-center rounded-lg bg-white/5 text-accent-neon">
+        <span className="grid h-[84px] w-[58px] flex-shrink-0 place-items-center rounded-lg bg-white/5 text-accent-neon">
           <PlayGlyph className="h-6 w-6" />
-        </div>
+        </span>
       )}
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate font-bold leading-tight">{anime.title}</p>
-        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-accent-neon">▶ Läuft</p>
-      </div>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-bold leading-tight">{anime.title}</span>
+        <span className="mt-1 block text-xs font-bold uppercase tracking-wide text-accent-neon">
+          ▶ Läuft
+        </span>
+      </span>
 
-      <button
-        type="button"
-        title="Staffel abschließen"
-        aria-label={`„${anime.title}" abschließen`}
-        onClick={() =>
-          openFranchise({
-            malId: anime.mal_id,
-            title: anime.title,
-            coverUrl: anime.cover_url,
-            existingId: anime.id,
-          })
-        }
-        className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-full border-[1.5px] border-accent-neon/60 bg-accent-neon/10 text-accent-neon transition hover:bg-accent-neon hover:text-bg active:scale-95"
-      >
-        <PlayGlyph className="ml-0.5 h-5 w-5" />
-      </button>
-    </div>
+      <span className="flex-shrink-0 pr-1 text-xl text-accent-neon/50" aria-hidden>
+        ›
+      </span>
+    </button>
   );
 }

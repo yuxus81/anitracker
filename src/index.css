@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --theme-glow: transparent;
-}
-
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
@@ -23,13 +19,6 @@
     max-width: 100vw;
     overflow-x: hidden;
     overscroll-behavior-x: none;
-    background: radial-gradient(
-      circle at top,
-      var(--theme-glow) 0%,
-      theme('colors.bg') 42%,
-      theme('colors.bg') 100%
-    );
-    transition: background 0.8s ease;
     -webkit-user-select: none;
     user-select: none;
   }
@@ -105,7 +94,7 @@
      frame during the per-card animation-delay, then reverts to the resting
      state so `.hover-lift`'s transform is not locked after the animation. */
   .hub-card {
-    animation: staggerFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation: staggerFadeIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) backwards;
   }
 }
 

@@ -16,7 +16,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useGroupedAnimes, useReorder, useDeleteAnime, useUpdateAnime } from '@/hooks/useAnimes';
+import { useGroupedAnimes, useReorder, useUpdateAnime } from '@/hooks/useAnimes';
 import { useDetailStore } from '@/features/shared/detailStore';
 import { useUIStore, toast } from '@/store/ui';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -25,16 +25,12 @@ import { Modal } from '@/components/ui/Modal';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { cn } from '@/utils/cn';
-import { categoryTheme } from '@/theme/categoryTheme';
-import { useThemeGlow } from '@/theme/useThemeGlow';
 import type { AnimeRow } from '@/types/db';
 
 export function WatchlistPage() {
   const { grouped, isLoading, isError, refetch } = useGroupedAnimes();
   const reorder = useReorder();
   const openAddModal = useUIStore((s) => s.openAddModal);
-
-  useThemeGlow(categoryTheme.watchlist.accentHex);
 
   const [items, setItems] = useState<AnimeRow[]>([]);
   const [rouletteOpen, setRouletteOpen] = useState(false);
@@ -122,23 +118,13 @@ function SortableCard({ anime }: { anime: AnimeRow }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: anime.id,
   });
-  const del = useDeleteAnime();
-  const update = useUpdateAnime();
-  const openDetail = useDetailStore((s) => s.open);
+  const openRow = useDetailStore((s) => s.openRow);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 50 : undefined,
   };
-
-  function startWatching() {
-    update.mutate({
-      id: anime.id,
-      patch: { category: 'current', status: 'active', sort_order: Date.now() },
-    });
-    toast.success(`„${anime.title}" ist jetzt in „Am Schauen"`, '▶️');
-  }
 
   return (
     <div
@@ -157,37 +143,27 @@ function SortableCard({ anime }: { anime: AnimeRow }) {
       >
         ⠿
       </button>
-      <button
-        type="button"
-        onClick={() => del.mutate(anime.id)}
-        aria-label="Entfernen"
-        className="absolute right-1.5 top-1.5 z-10 grid h-8 w-8 place-items-center rounded-lg bg-black/60 text-white/80 transition hover:bg-danger hover:text-white"
-      >
-        ✕
-      </button>
 
       <button
         type="button"
-        onClick={() => anime.mal_id && openDetail(anime.mal_id)}
-        disabled={!anime.mal_id}
+        onClick={() => openRow(anime)}
         aria-label={`Details zu ${anime.title}`}
-        className="block aspect-[2/3] w-full bg-black/30"
+        className="hover-lift block w-full text-left"
       >
-        {anime.cover_url && (
-          <img src={anime.cover_url} alt="" loading="lazy" className="h-full w-full object-cover" />
-        )}
+        <span className="block aspect-[2/3] w-full bg-black/30">
+          {anime.cover_url && (
+            <img
+              src={anime.cover_url}
+              alt=""
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+          )}
+        </span>
+        <span className="block p-2">
+          <span className="block truncate text-xs font-bold">{anime.title}</span>
+        </span>
       </button>
-
-      <div className="p-2">
-        <p className="truncate text-xs font-bold">{anime.title}</p>
-        <button
-          type="button"
-          onClick={startWatching}
-          className="mt-1.5 w-full rounded-lg bg-accent-neon/15 py-1 text-[0.7rem] font-bold text-accent-neon transition hover:bg-accent-neon hover:text-bg"
-        >
-          ▶ Schauen
-        </button>
-      </div>
     </div>
   );
 }

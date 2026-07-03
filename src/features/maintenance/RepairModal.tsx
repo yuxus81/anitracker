@@ -8,6 +8,8 @@ import { getCover } from '@/utils/titles';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { toast } from '@/store/ui';
+import type { AnimeUpdate } from '@/types/db';
+import type { JikanAnime } from '@/types/jikan';
 import { scanLibrary, type RepairReport } from './repair';
 
 export function RepairModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -30,10 +32,26 @@ export function RepairModal({ open, onClose }: { open: boolean; onClose: () => v
       if (fixCovers) {
         for (const r of report.missingCovers) {
           try {
-            const cover = getCover((await jikanApi.getAnime(r.mal_id!)).data);
-            if (cover) {
-              await updateAnime(r.id, { cover_url: cover });
-              covers += 1;
+            // Resolve from Jikan by id when we have one, otherwise by title search.
+            let match: JikanAnime | null = null;
+            if (r.mal_id != null) {
+              match = (await jikanApi.getAnime(r.mal_id)).data;
+            } else {
+              match = (await jikanApi.search(r.title, null)).data?.[0] ?? null;
+            }
+            if (!match) continue;
+
+            const patch: AnimeUpdate = {};
+            const cover = getCover(match);
+            if (cover) patch.cover_url = cover;
+            // Title-only rows also gain a stable id + format for future scans.
+            if (r.mal_id == null && match.mal_id) patch.mal_id = match.mal_id;
+            if (r.mal_id == null && match.type) {
+              patch.format = match.type === 'Movie' ? 'movie' : 'season';
+            }
+            if (Object.keys(patch).length > 0) {
+              await updateAnime(r.id, patch);
+              if (cover) covers += 1;
             }
           } catch {
             /* skip this item, keep going */
@@ -79,7 +97,9 @@ export function RepairModal({ open, onClose }: { open: boolean; onClose: () => v
               <span className="font-semibold text-ink">
                 {report.missingCovers.length} Cover fehlen
               </span>
-              <span className="block text-xs text-muted">Werden aus MyAnimeList nachgeladen.</span>
+              <span className="block text-xs text-muted">
+                Werden aus MyAnimeList nachgeladen — per Titel-Suche, falls keine ID hinterlegt ist.
+              </span>
             </span>
           </label>
 
