@@ -309,7 +309,10 @@ function FranchiseWizard({ seed, onDone }: { seed: FranchiseSeed; onDone: () => 
                         {node.label ? ` · ${node.label}` : ''}
                       </span>
                       {node.airing ? (
-                        <span className="text-[0.7rem] font-bold text-accent-neon">🔴 Läuft aktuell</span>
+                        <span className="flex items-center gap-1.5 text-[0.7rem] font-bold text-accent-neon">
+                          <span className="h-1.5 w-1.5 rounded-full bg-accent-neon" aria-hidden />
+                          Läuft aktuell
+                        </span>
                       ) : !node.released ? (
                         <span className="text-[0.7rem] font-bold text-orange">
                           🔒 Noch nicht erschienen

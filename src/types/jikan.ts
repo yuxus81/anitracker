@@ -31,6 +31,13 @@ export interface JikanAired {
   string?: string | null;
 }
 
+export interface JikanBroadcast {
+  day?: string | null; // "Sundays"
+  time?: string | null; // "23:00" (JST)
+  timezone?: string | null; // "Asia/Tokyo"
+  string?: string | null; // "Sundays at 23:00 (JST)"
+}
+
 export interface JikanEntity {
   mal_id: number;
   type: string;
@@ -69,6 +76,7 @@ export interface JikanAnime {
   status?: string | null; // "Finished Airing" | "Currently Airing" | "Not yet aired"
   airing?: boolean;
   aired?: JikanAired;
+  broadcast?: JikanBroadcast | null;
   duration?: string | null;
   rating?: string | null;
   score?: number | null;
