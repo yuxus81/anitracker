@@ -3,7 +3,16 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { cn } from '@/utils/cn';
 import { useFranchiseAggregate } from '@/features/franchise/useFranchiseAggregate';
 import type { FranchiseAggregate, FranchiseEntry } from '@/features/franchise/aggregate';
-import { AiringBanner, EntryStats, TileSkeletons, typeLabel } from './detailParts';
+import {
+  AiringBanner,
+  EntryStats,
+  LinkTile,
+  ScoreValue,
+  StatTile,
+  TileSkeletons,
+  typeLabel,
+  type TileTone,
+} from './detailParts';
 
 type GroupKey = 'seasons' | 'movies' | 'specials' | 'announced';
 
@@ -107,7 +116,8 @@ export function FranchiseExplorer({
 interface TileDesc {
   kind: 'link' | 'stat';
   label: string;
-  value: string;
+  value: ReactNode;
+  tone?: TileTone;
   group?: GroupKey;
 }
 
@@ -123,7 +133,7 @@ function TilesGrid({ data, onOpen }: { data: FranchiseAggregate; onOpen: (g: Gro
     tiles.push({ kind: 'link', group: 'specials', label: 'Specials', value: String(data.specials.length) });
   if (data.announced.length > 0)
     tiles.push({ kind: 'link', group: 'announced', label: 'Angekündigt', value: String(data.announced.length) });
-  tiles.push({ kind: 'stat', label: 'Ø Bewertung', value: data.score != null ? `★ ${data.score}` : '—' });
+  tiles.push({ kind: 'stat', label: 'Ø Bewertung', tone: 'gold', value: <ScoreValue score={data.score} /> });
 
   return (
     <div className="my-4 grid grid-cols-2 gap-2.5">
@@ -141,75 +151,16 @@ function TilesGrid({ data, onOpen }: { data: FranchiseAggregate; onOpen: (g: Gro
             onClick={() => onOpen(t.group!)}
           />
         ) : (
-          <StatTile key={t.label} label={t.label} value={t.value} className={cls} style={style} />
+          <StatTile
+            key={t.label}
+            label={t.label}
+            value={t.value}
+            tone={t.tone}
+            className={cls}
+            style={style}
+          />
         );
       })}
-    </div>
-  );
-}
-
-function LinkTile({
-  label,
-  value,
-  onClick,
-  className,
-  style,
-}: {
-  label: string;
-  value: string;
-  onClick: () => void;
-  className?: string;
-  style?: CSSProperties;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={style}
-      className={cn(
-        'hover-lift hover-press group relative overflow-hidden rounded-xl2 border border-accent-neon/30 p-3.5 text-left transition-colors hover:border-accent-neon/60',
-        'bg-gradient-to-br from-accent-neon/[0.10] via-accent-purple/[0.06] to-transparent',
-        'shadow-[0_0_24px_-12px_rgba(0,245,212,0.85)]',
-        className,
-      )}
-    >
-      <span className="block text-[0.65rem] font-bold uppercase tracking-widest text-accent-neon/80">
-        {label}
-      </span>
-      <span className="mt-1 block text-[1.6rem] font-extrabold leading-none text-ink">{value}</span>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute right-3 top-3.5 text-accent-neon/70 transition-transform group-hover:translate-x-0.5"
-      >
-        ›
-      </span>
-    </button>
-  );
-}
-
-function StatTile({
-  label,
-  value,
-  className,
-  style,
-}: {
-  label: string;
-  value: string;
-  className?: string;
-  style?: CSSProperties;
-}) {
-  return (
-    <div
-      style={style}
-      className={cn(
-        'rounded-xl2 border border-white/[0.08] bg-gradient-to-br from-white/[0.05] to-white/[0.01] p-3.5 text-left',
-        className,
-      )}
-    >
-      <span className="block text-[0.65rem] font-bold uppercase tracking-widest text-muted">
-        {label}
-      </span>
-      <span className="mt-1 block text-[1.6rem] font-extrabold leading-none text-ink">{value}</span>
     </div>
   );
 }
@@ -218,7 +169,7 @@ function StatTile({
 
 function BackBar({ label, count, onBack }: { label: string; count?: number; onBack: () => void }) {
   return (
-    <div className="sticky top-0 z-10 mb-3 flex items-center gap-2 bg-card/95 py-1.5 text-left backdrop-blur-sm">
+    <div className="sticky top-0 z-10 -mx-3.5 mb-3 flex items-center gap-2 border-b border-white/5 bg-card/95 px-3.5 py-2 text-left backdrop-blur-sm">
       <button
         type="button"
         onClick={onBack}

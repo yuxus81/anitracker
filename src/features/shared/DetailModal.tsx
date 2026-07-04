@@ -11,7 +11,7 @@ import { cn } from '@/utils/cn';
 import { categoryKeyForRow, themeForRow } from '@/theme/categoryTheme';
 import { useDetailStore } from './detailStore';
 import { FranchiseExplorer } from './FranchiseExplorer';
-import { AiringBanner, EntryStats, Meta, TileSkeletons, formatLabel } from './detailParts';
+import { AiringBanner, EntryStats, StatTile, TileSkeletons, formatLabel } from './detailParts';
 import { useAddAnime, useAnimesQuery, useDeleteAnime, useUpdateAnime } from '@/hooks/useAnimes';
 import { useFranchiseStore } from '@/features/franchise/franchiseStore';
 import { toast } from '@/store/ui';
@@ -187,10 +187,14 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
       {header}
 
       {row.mal_id == null ? (
-        <div className="my-4 grid grid-cols-2 gap-2 text-left">
-          <Meta label="Kategorie" value={theme.label} />
-          {row.release_label && <Meta label="Release" value={row.release_label} />}
-          {row.format && <Meta label="Typ" value={formatLabel(row.format)} />}
+        <div className="my-4 grid grid-cols-2 gap-2.5">
+          <StatTile label="Kategorie" valueClass="text-base leading-tight" value={theme.label} />
+          {row.release_label && (
+            <StatTile label="Release" valueClass="text-base leading-tight" value={row.release_label} />
+          )}
+          {row.format && (
+            <StatTile label="Typ" valueClass="text-base leading-tight" value={formatLabel(row.format)} />
+          )}
         </div>
       ) : detail.isLoading ? (
         <TileSkeletons count={3} />

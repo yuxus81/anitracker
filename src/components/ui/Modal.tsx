@@ -104,7 +104,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={labelledBy}
         className={cn(
-          'relative w-full bg-card rounded-xl3 p-7 shadow-modal border border-white/10',
+          'relative w-full bg-card rounded-xl3 px-3.5 py-7 shadow-modal border border-white/10',
           'max-h-[85dvh] flex flex-col animate-stagger',
           sizes[size],
           className,
@@ -115,7 +115,7 @@ export function Modal({
             type="button"
             onClick={onBack}
             aria-label="Zurück"
-            className="absolute left-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-accent-purple/10 border border-accent-purple/35 text-accent-purple hover:bg-accent-purple hover:text-white transition"
+            className="absolute left-5 top-5 z-20 grid h-9 w-9 place-items-center rounded-full bg-accent-purple/10 border border-accent-purple/35 text-accent-purple hover:bg-accent-purple hover:text-white transition"
           >
             <span aria-hidden>‹</span>
           </button>
@@ -124,7 +124,7 @@ export function Modal({
           type="button"
           onClick={onClose}
           aria-label="Schließen"
-          className="absolute right-5 top-5 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white hover:text-black transition"
+          className="absolute right-5 top-5 z-20 grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white hover:bg-white hover:text-black transition"
         >
           <span aria-hidden>✕</span>
         </button>
@@ -135,7 +135,7 @@ export function Modal({
           </h3>
         )}
 
-        <div className="overflow-y-auto flex-1 -mr-2 pr-2">{children}</div>
+        <div className="overflow-y-auto flex-1 px-3.5">{children}</div>
       </div>
     </div>,
     document.body,
