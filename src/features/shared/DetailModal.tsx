@@ -7,16 +7,16 @@ import { FilmIcon } from '@/components/icons/CategoryIcons';
 import { qk } from '@/lib/queryClient';
 import { jikanApi } from '@/api/jikan';
 import { getBestTitle, getCover } from '@/utils/titles';
-import { formatBroadcastLocal } from '@/utils/broadcast';
 import { cn } from '@/utils/cn';
 import { categoryKeyForRow, themeForRow } from '@/theme/categoryTheme';
 import { useDetailStore } from './detailStore';
+import { FranchiseExplorer } from './FranchiseExplorer';
+import { AiringBanner, EntryStats, StatTile, TileSkeletons, formatLabel } from './detailParts';
 import { useAddAnime, useAnimesQuery, useDeleteAnime, useUpdateAnime } from '@/hooks/useAnimes';
 import { useFranchiseStore } from '@/features/franchise/franchiseStore';
-import { useFranchiseAggregate } from '@/features/franchise/useFranchiseAggregate';
 import { toast } from '@/store/ui';
-import type { AnimeFormat, AnimeRow } from '@/types/db';
-import type { JikanAnime, JikanBroadcast } from '@/types/jikan';
+import type { AnimeRow } from '@/types/db';
+import type { ReactNode } from 'react';
 
 export function DetailModal() {
   const malId = useDetailStore((s) => s.malId);
@@ -141,8 +141,8 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
   }
   actions.push({ label: 'Entfernen', variant: 'danger', onClick: remove });
 
-  return (
-    <div className="text-center">
+  const header: ReactNode = (
+    <>
       {cover ? (
         <img src={cover} alt="" className="mx-auto max-h-64 rounded-2xl object-contain shadow-card" />
       ) : (
@@ -171,15 +171,31 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
       <h3 className="mt-2 text-xl font-extrabold leading-tight">{row.title}</h3>
 
       {a?.airing && <AiringBanner broadcast={a.broadcast} />}
+    </>
+  );
+
+  // Version 1 — whole-franchise explorer with drill-down.
+  if (franchiseView && row.mal_id != null) {
+    return (
+      <FranchiseExplorer malId={row.mal_id} header={header} actions={<ActionGrid actions={actions} />} />
+    );
+  }
+
+  // Version 2 — single tracked entry (or a minimal fallback without a mal_id).
+  return (
+    <div className="text-center">
+      {header}
 
       {row.mal_id == null ? (
-        <div className="my-4 grid grid-cols-2 gap-2 text-left">
-          <Meta label="Kategorie" value={theme.label} />
-          {row.release_label && <Meta label="Release" value={row.release_label} />}
-          {row.format && <Meta label="Typ" value={formatLabel(row.format)} />}
+        <div className="my-4 grid grid-cols-2 gap-2.5">
+          <StatTile label="Kategorie" valueClass="text-base leading-tight" value={theme.label} />
+          {row.release_label && (
+            <StatTile label="Release" valueClass="text-base leading-tight" value={row.release_label} />
+          )}
+          {row.format && (
+            <StatTile label="Typ" valueClass="text-base leading-tight" value={formatLabel(row.format)} />
+          )}
         </div>
-      ) : franchiseView ? (
-        <FranchiseOverview malId={row.mal_id} />
       ) : detail.isLoading ? (
         <TileSkeletons count={3} />
       ) : detail.isError ? (
@@ -187,7 +203,13 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
           <ErrorState onRetry={() => detail.refetch()} />
         </div>
       ) : a ? (
-        <EntryStats a={a} row={row} />
+        <EntryStats
+          score={a.score ?? null}
+          episodes={a.episodes ?? null}
+          duration={a.duration ?? null}
+          type={a.type ?? null}
+          format={row.format}
+        />
       ) : null}
 
       <ActionGrid actions={actions} />
@@ -243,171 +265,33 @@ function DiscoverDetail({ malId, onClose }: { malId: number; onClose: () => void
     return <ErrorState onRetry={() => detail.refetch()} />;
   }
 
-  return (
-    <div className="text-center">
+  const header: ReactNode = (
+    <>
       <img
         src={getCover(a) ?? ''}
         alt=""
         className="mx-auto max-h-72 rounded-2xl object-contain shadow-glow-purple"
       />
       <h3 className="mt-4 text-xl font-extrabold leading-tight">{getBestTitle(a)}</h3>
-
       {a.airing && <AiringBanner broadcast={a.broadcast} />}
+    </>
+  );
 
-      <FranchiseOverview malId={malId} />
-
-      {tracked ? (
-        <div
-          className={cn(
-            'rounded-xl border py-3 text-sm font-semibold',
-            themeForRow(tracked).chip,
-          )}
-        >
-          Bereits in deiner Sammlung ({themeForRow(tracked).label})
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2.5">
-          <ActionButton variant="purple" loading={addAnime.isPending} onClick={addToWatchlist}>
-            Watchlist
-          </ActionButton>
-          <ActionButton variant="neon" onClick={markWatched}>
-            Schon gesehen
-          </ActionButton>
-        </div>
-      )}
+  const actions: ReactNode = tracked ? (
+    <div className={cn('mt-4 rounded-xl border py-3 text-sm font-semibold', themeForRow(tracked).chip)}>
+      Bereits in deiner Sammlung ({themeForRow(tracked).label})
+    </div>
+  ) : (
+    <div className="mt-4 grid grid-cols-2 gap-2.5">
+      <ActionButton variant="purple" loading={addAnime.isPending} onClick={addToWatchlist}>
+        Watchlist
+      </ActionButton>
+      <ActionButton variant="neon" onClick={markWatched}>
+        Schon gesehen
+      </ActionButton>
     </div>
   );
-}
 
-// ---- Shared popup pieces ----------------------------------------------------
-
-/**
- * Cyan "now airing" banner. Only rendered when the entry is currently airing;
- * shows the next episode's slot converted to the viewer's local time.
- */
-function AiringBanner({ broadcast }: { broadcast?: JikanBroadcast | null }) {
-  const when = formatBroadcastLocal(broadcast);
-  return (
-    <div className="mt-3 rounded-xl border border-accent-neon/40 bg-accent-neon/10 px-4 py-2.5 text-accent-neon">
-      <div className="flex items-center justify-center gap-2 text-sm font-bold">
-        <span className="relative flex h-2 w-2" aria-hidden>
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-neon opacity-60 motion-reduce:animate-none" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-accent-neon" />
-        </span>
-        Läuft aktuell
-      </div>
-      {when && (
-        <div className="mt-1 text-center text-xs font-semibold text-accent-neon/80">
-          Neue Folge · {when}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Version 1 — whole-franchise rollup (Geschaut, Watchlist, Entdecken). */
-function FranchiseOverview({ malId }: { malId: number }) {
-  const { data, isLoading, isError, refetch } = useFranchiseAggregate(malId, true);
-
-  if (isLoading) return <TileSkeletons count={4} />;
-  if (isError || !data) {
-    return (
-      <div className="my-4">
-        <ErrorState onRetry={() => refetch()} />
-      </div>
-    );
-  }
-
-  const tiles: { label: string; value: string }[] = [
-    { label: 'Staffeln', value: data.seasons > 0 ? String(data.seasons) : '—' },
-    { label: 'Folgen', value: data.episodes > 0 ? String(data.episodes) : '—' },
-  ];
-  if (data.movies > 0) tiles.push({ label: 'Filme', value: String(data.movies) });
-  if (data.specials > 0) tiles.push({ label: 'Specials', value: String(data.specials) });
-  if (data.announced > 0) tiles.push({ label: 'Angekündigt', value: String(data.announced) });
-  tiles.push({ label: 'Ø Bewertung', value: data.score != null ? `★ ${data.score}` : '—' });
-
-  return (
-    <div className="my-4 grid grid-cols-2 gap-2 text-left">
-      {tiles.map((t, i) => {
-        const lastOdd = i === tiles.length - 1 && tiles.length % 2 === 1;
-        return (
-          <Meta key={t.label} label={t.label} value={t.value} className={cn(lastOdd && 'col-span-2')} />
-        );
-      })}
-    </div>
-  );
-}
-
-/** Version 2 — the single clicked entry (Fortsetzung, Noch zu schauen, Am Schauen). */
-function EntryStats({ a, row }: { a: JikanAnime; row: AnimeRow }) {
-  const isMovie = row.format === 'movie' || (a.type ?? '').toLowerCase() === 'movie';
-  return (
-    <div className="my-4 grid grid-cols-3 gap-2 text-left">
-      <Meta label="Score" value={a.score ? `★ ${a.score}` : '—'} />
-      {isMovie ? (
-        <Meta label="Dauer" value={formatDuration(a.duration)} />
-      ) : (
-        <Meta label="Folgen" value={a.episodes ? String(a.episodes) : '—'} />
-      )}
-      <Meta label="Typ" value={typeLabel(a.type, row.format)} />
-    </div>
-  );
-}
-
-function TileSkeletons({ count }: { count: number }) {
-  return (
-    <div className="my-4 grid grid-cols-2 gap-2">
-      {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-16 rounded-xl" />
-      ))}
-    </div>
-  );
-}
-
-function Meta({ label, value, className }: { label: string; value: string; className?: string }) {
-  return (
-    <div className={cn('rounded-xl border border-white/5 bg-white/[0.03] p-3', className)}>
-      <span className="block text-[0.65rem] font-bold uppercase tracking-wide text-muted">
-        {label}
-      </span>
-      <span className="mt-0.5 block font-extrabold">{value}</span>
-    </div>
-  );
-}
-
-function formatLabel(format: AnimeFormat): string {
-  return format === 'movie' ? 'Film' : format === 'season' ? 'Staffel' : 'Abgeschlossen';
-}
-
-/** Maps a Jikan type (falling back to the stored format) to a German label. */
-function typeLabel(type: string | null | undefined, format: AnimeFormat | null): string {
-  switch ((type ?? '').toLowerCase()) {
-    case 'tv':
-      return 'Staffel';
-    case 'movie':
-      return 'Film';
-    case 'ova':
-      return 'OVA';
-    case 'ona':
-      return 'ONA';
-    case 'special':
-    case 'tv special':
-      return 'Special';
-    case 'music':
-      return 'Music';
-  }
-  return format ? formatLabel(format) : '—';
-}
-
-/** Tidies Jikan's duration string ("1 hr 47 min per ep") into German. */
-function formatDuration(duration: string | null | undefined): string {
-  if (!duration) return '—';
-  const cleaned = duration
-    .replace(/per ep/i, '')
-    .replace(/\bhr\b/i, 'Std.')
-    .replace(/\bmin\b/i, 'Min.')
-    .replace(/\s+/g, ' ')
-    .trim();
-  return cleaned || '—';
+  // Discovery always shows the whole-franchise explorer ("Version 1").
+  return <FranchiseExplorer malId={malId} header={header} actions={actions} />;
 }
