@@ -60,11 +60,13 @@ interface GenreTheme {
   pill: string;
 }
 
+// Each wash: a strong top-anchored glow (radial) plus a faint full-height tint
+// (linear) so the whole viewport reads as themed, not just a band near the top.
 const GENRE_THEME: Record<number, GenreTheme> = {
   // Action — ember red
   1: {
     gradient:
-      'radial-gradient(120% 75% at 50% 0%, rgba(255,64,48,0.20), transparent 55%), linear-gradient(180deg, rgba(255,0,60,0.10), transparent 42%)',
+      'radial-gradient(140% 100% at 50% -10%, rgba(255,64,48,0.22), transparent 62%), linear-gradient(180deg, rgba(255,0,60,0.14), rgba(255,0,60,0.05) 55%, transparent 92%)',
     particleColor: '#ff7043',
     shape: 'orb',
     pill: 'border-[#ff7043] bg-[#ff7043]/15 text-[#ff7043]',
@@ -72,7 +74,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
   // Abenteuer — emerald
   2: {
     gradient:
-      'radial-gradient(120% 75% at 50% 0%, rgba(46,204,113,0.20), transparent 55%), linear-gradient(180deg, rgba(16,150,90,0.10), transparent 42%)',
+      'radial-gradient(140% 100% at 50% -10%, rgba(46,204,113,0.22), transparent 62%), linear-gradient(180deg, rgba(16,150,90,0.14), rgba(16,150,90,0.05) 55%, transparent 92%)',
     particleColor: '#48d597',
     shape: 'orb',
     pill: 'border-[#48d597] bg-[#48d597]/15 text-[#48d597]',
@@ -80,7 +82,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
   // Fantasy — violet sparkle
   10: {
     gradient:
-      'radial-gradient(120% 75% at 50% 0%, rgba(138,43,226,0.24), transparent 55%), linear-gradient(180deg, rgba(90,40,200,0.12), transparent 42%)',
+      'radial-gradient(140% 100% at 50% -10%, rgba(138,43,226,0.26), transparent 62%), linear-gradient(180deg, rgba(90,40,200,0.15), rgba(90,40,200,0.05) 55%, transparent 92%)',
     particleColor: '#c9a8ff',
     shape: 'star',
     pill: 'border-[#c9a8ff] bg-[#c9a8ff]/15 text-[#c9a8ff]',
@@ -88,7 +90,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
   // Romance — rose hearts
   22: {
     gradient:
-      'radial-gradient(120% 75% at 50% 0%, rgba(255,60,120,0.24), transparent 55%), linear-gradient(180deg, rgba(214,20,90,0.13), transparent 42%)',
+      'radial-gradient(140% 100% at 50% -10%, rgba(255,60,120,0.26), transparent 62%), linear-gradient(180deg, rgba(214,20,90,0.15), rgba(214,20,90,0.05) 55%, transparent 92%)',
     particleColor: '#ff5c8a',
     shape: 'heart',
     pill: 'border-[#ff5c8a] bg-[#ff5c8a]/15 text-[#ff5c8a]',
@@ -96,7 +98,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
   // Sport — electric blue
   30: {
     gradient:
-      'radial-gradient(120% 75% at 50% 0%, rgba(58,134,255,0.20), transparent 55%), linear-gradient(180deg, rgba(0,180,220,0.10), transparent 42%)',
+      'radial-gradient(140% 100% at 50% -10%, rgba(58,134,255,0.22), transparent 62%), linear-gradient(180deg, rgba(0,180,220,0.13), rgba(0,180,220,0.05) 55%, transparent 92%)',
     particleColor: '#5ad1ff',
     shape: 'orb',
     pill: 'border-[#5ad1ff] bg-[#5ad1ff]/15 text-[#5ad1ff]',
@@ -104,7 +106,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
   // Drama — warm theatrical amber-gold
   8: {
     gradient:
-      'radial-gradient(120% 75% at 50% 0%, rgba(255,190,60,0.20), transparent 55%), linear-gradient(180deg, rgba(240,160,20,0.10), transparent 42%)',
+      'radial-gradient(140% 100% at 50% -10%, rgba(255,190,60,0.22), transparent 62%), linear-gradient(180deg, rgba(240,160,20,0.13), rgba(240,160,20,0.05) 55%, transparent 92%)',
     particleColor: '#ffcf5c',
     shape: 'orb',
     pill: 'border-[#ffcf5c] bg-[#ffcf5c]/15 text-[#ffcf5c]',
@@ -148,10 +150,12 @@ function ParticleGlyph({ shape, color, size }: { shape: ParticleShape; color: st
 }
 
 /**
- * Full-bleed wash + drifting particle field for a themed genre page. Rendered as
- * the backmost layer inside the (transparent, transform-positioned) page root, so
- * it composites over the app background while the content sits above it at z-10.
- * Inert (pointer-events-none) and hidden entirely under prefers-reduced-motion.
+ * Full-viewport wash + drifting particle field for a themed genre page. Fixed to
+ * the viewport (not the content column) so it covers the whole screen edge-to-edge
+ * on every device; it must be rendered OUTSIDE the page's `.animate-stagger`
+ * wrapper, whose transform would otherwise become its containing block and clip it
+ * back to the content box. Sits at z-0 behind the header/content (both z-10) and
+ * the bottom nav (z-[1500]). Inert and hidden under prefers-reduced-motion.
  */
 function GenreAtmosphere({ theme }: { theme: GenreTheme }) {
   const particles = useMemo<ParticleSpec[]>(() => {
@@ -171,7 +175,7 @@ function GenreAtmosphere({ theme }: { theme: GenreTheme }) {
   }, [theme.particleColor]);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden motion-reduce:hidden">
+    <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden motion-reduce:hidden">
       <div className="absolute inset-0" style={{ background: theme.gradient }} />
       {particles.map((p, i) => (
         <span
@@ -207,10 +211,10 @@ export function DiscoverPage() {
   const genreTheme = genre ? GENRE_THEME[genre.id] : null;
 
   return (
-    <div className="animate-stagger relative">
+    <>
       {genreTheme && <GenreAtmosphere theme={genreTheme} />}
 
-      <div className="relative z-10">
+      <div className="animate-stagger relative z-10">
         <PageHeader title="Entdecken" />
 
         {/* Search */}
@@ -291,7 +295,7 @@ export function DiscoverPage() {
           </>
         )}
       </div>
-    </div>
+    </>
   );
 }
 
@@ -321,7 +325,7 @@ function DiscoveryRow({
       ) : (
         <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
           {q.data!.map((a) => (
-            <div key={a.mal_id} className="w-[130px] flex-shrink-0 snap-start">
+            <div key={a.mal_id} className="w-[184px] flex-shrink-0 snap-start">
               <PosterCard anime={a} />
             </div>
           ))}
@@ -398,7 +402,7 @@ function ResultGrid({
   if (isError) return <ErrorState onRetry={onRetry} />;
   if (isLoading) {
     return (
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {Array.from({ length: 12 }).map((_, i) => (
           <div key={i} className="skeleton aspect-[2/3] w-full rounded-xl2" />
         ))}

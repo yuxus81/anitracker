@@ -24,39 +24,39 @@ export function HubCard({ anime, theme, chip, index = 0, sheen, onOpen }: HubCar
       onClick={onOpen}
       aria-label={`Details zu ${anime.title}`}
       className={cn(
-        'hover-lift flex w-full items-center gap-4 rounded-xl2 border p-3.5 text-left shadow-card',
+        'hover-lift flex w-full items-center gap-3.5 rounded-xl2 border p-3 text-left shadow-card',
         sheen ? 'animate-sheen' : 'hub-card',
         theme.tint,
       )}
       style={{ animationDelay: `${Math.min(index, 10) * 60}ms` }}
     >
-      <span className={cn('h-[150px] w-[4px] flex-shrink-0 rounded-full', theme.bar)} aria-hidden />
+      <span className={cn('h-[128px] w-[4px] flex-shrink-0 rounded-full', theme.bar)} aria-hidden />
 
       {anime.cover_url ? (
         <img
           src={anime.cover_url}
           alt=""
           loading="lazy"
-          className="h-[150px] w-[106px] flex-shrink-0 rounded-xl object-cover shadow-card"
+          className="h-[128px] w-[90px] flex-shrink-0 rounded-xl object-cover shadow-card"
         />
       ) : (
         <span
           className={cn(
-            'grid h-[150px] w-[106px] flex-shrink-0 place-items-center rounded-xl border',
+            'grid h-[128px] w-[90px] flex-shrink-0 place-items-center rounded-xl border',
             theme.tint,
             theme.text,
           )}
         >
-          <FilmIcon className="h-10 w-10" />
+          <FilmIcon className="h-9 w-9" />
         </span>
       )}
 
       <div className="min-w-0 flex-1">
-        <p className="line-clamp-2 text-lg font-bold leading-snug">{anime.title}</p>
+        <p className="line-clamp-2 text-base font-bold leading-snug">{anime.title}</p>
         {chip && <div className="mt-2 flex flex-wrap items-center gap-1.5">{chip}</div>}
       </div>
 
-      <span className="flex-shrink-0 pr-1 text-2xl text-muted/50" aria-hidden>
+      <span className="flex-shrink-0 pr-1 text-xl text-muted/50" aria-hidden>
         ›
       </span>
     </button>

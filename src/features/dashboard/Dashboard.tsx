@@ -99,7 +99,7 @@ export function Dashboard() {
           ) : (
             <div className="mb-8 flex flex-col gap-3">
               {grouped.current.slice(0, 4).map((a) => (
-                <NeonTicket key={a.id} anime={a} />
+                <NeonTicket key={a.id} anime={a} compact />
               ))}
             </div>
           )}
