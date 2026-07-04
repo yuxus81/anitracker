@@ -89,6 +89,14 @@ export default {
           from: { opacity: '0' },
           to: { opacity: '1' },
         },
+        drillIn: {
+          from: { opacity: '0', transform: 'translateX(22px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
+        drillBack: {
+          from: { opacity: '0', transform: 'translateX(-22px)' },
+          to: { opacity: '1', transform: 'translateX(0)' },
+        },
       },
       animation: {
         // Soft, unhurried ease-out everywhere. Entrances are deliberately long and
@@ -103,6 +111,8 @@ export default {
         radar: 'radar 3s ease-out infinite',
         sheen: 'sheen 1s cubic-bezier(0.22,1,0.36,1) backwards',
         'page-fade': 'pageFade 0.65s cubic-bezier(0.22,1,0.36,1) both',
+        'drill-in': 'drillIn 0.34s cubic-bezier(0.16,1,0.3,1) both',
+        'drill-back': 'drillBack 0.34s cubic-bezier(0.16,1,0.3,1) both',
       },
     },
   },
