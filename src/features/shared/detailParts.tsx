@@ -59,7 +59,7 @@ export function StatTile({
   label,
   value,
   tone = 'neutral',
-  valueClass = 'text-[1.6rem] leading-none',
+  valueClass = 'text-[1.25rem] leading-none',
   className,
   style,
 }: {
@@ -72,8 +72,8 @@ export function StatTile({
 }) {
   const t = TONES[tone];
   return (
-    <div style={style} className={cn('rounded-xl2 border p-3.5 text-left', t.frame, className)}>
-      <span className={cn('block text-[0.65rem] font-bold uppercase tracking-widest', t.label)}>
+    <div style={style} className={cn('rounded-xl2 border p-2.5 text-left', t.frame, className)}>
+      <span className={cn('block text-[0.6rem] font-bold uppercase tracking-widest', t.label)}>
         {label}
       </span>
       <span className={cn('mt-1 block font-extrabold text-ink', valueClass)}>{value}</span>
@@ -104,18 +104,18 @@ export function LinkTile({
       onClick={onClick}
       style={style}
       className={cn(
-        'hover-lift hover-press group relative rounded-xl2 border p-3.5 text-left transition-colors hover:border-accent-neon/60',
+        'hover-lift hover-press group relative rounded-xl2 border p-2.5 text-left transition-colors hover:border-accent-neon/60',
         t.frame,
         className,
       )}
     >
-      <span className={cn('block text-[0.65rem] font-bold uppercase tracking-widest', t.label)}>
+      <span className={cn('block text-[0.6rem] font-bold uppercase tracking-widest', t.label)}>
         {label}
       </span>
-      <span className="mt-1 block text-[1.6rem] font-extrabold leading-none text-ink">{value}</span>
+      <span className="mt-1 block text-[1.25rem] font-extrabold leading-none text-ink">{value}</span>
       <span
         aria-hidden
-        className="pointer-events-none absolute right-3 top-3.5 text-accent-neon/70 transition-transform group-hover:translate-x-0.5"
+        className="pointer-events-none absolute right-2.5 top-2.5 text-accent-neon/70 transition-transform group-hover:translate-x-0.5"
       >
         ›
       </span>
@@ -137,7 +137,7 @@ export function TileSkeletons({ count }: { count: number }) {
   return (
     <div className="my-4 grid grid-cols-2 gap-2.5">
       {Array.from({ length: count }).map((_, i) => (
-        <Skeleton key={i} className="h-[4.5rem] rounded-xl2" />
+        <Skeleton key={i} className="h-[3.75rem] rounded-xl2" />
       ))}
     </div>
   );
@@ -162,7 +162,7 @@ export function EntryStats({
   format?: AnimeFormat | null;
 }) {
   const isMovie = format === 'movie' || (type ?? '').toLowerCase() === 'movie';
-  const compact = 'text-lg leading-tight';
+  const compact = 'text-base leading-tight';
   return (
     <div className="my-4 grid grid-cols-3 gap-2.5">
       <StatTile label="Score" tone="gold" valueClass={compact} value={<ScoreValue score={score} />} />

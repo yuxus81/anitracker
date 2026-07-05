@@ -30,8 +30,6 @@ export function HubCard({ anime, theme, chip, index = 0, sheen, onOpen }: HubCar
       )}
       style={{ animationDelay: `${Math.min(index, 10) * 60}ms` }}
     >
-      <span className={cn('h-[128px] w-[4px] flex-shrink-0 rounded-full', theme.bar)} aria-hidden />
-
       {anime.cover_url ? (
         <img
           src={anime.cover_url}

@@ -41,11 +41,11 @@ export function ContinuationCard({
           src={anime.cover_url}
           alt=""
           loading="lazy"
-          className="relative h-[104px] w-[72px] flex-shrink-0 rounded-lg object-cover shadow-glow-purple"
+          className="relative h-[136px] w-[94px] flex-shrink-0 rounded-lg object-cover shadow-glow-purple"
         />
       ) : (
-        <span className="relative grid h-[104px] w-[72px] flex-shrink-0 place-items-center rounded-lg border border-accent-purple/25 bg-accent-purple/10 text-[#c18eff]">
-          <FilmIcon className="h-7 w-7" />
+        <span className="relative grid h-[136px] w-[94px] flex-shrink-0 place-items-center rounded-lg border border-accent-purple/25 bg-accent-purple/10 text-[#c18eff]">
+          <FilmIcon className="h-9 w-9" />
         </span>
       )}
 
@@ -61,11 +61,6 @@ export function ContinuationCard({
           {fmt && (
             <span className="inline-flex w-fit items-center gap-1 text-xs font-medium text-muted">
               {fmt.icon} {fmt.label}
-            </span>
-          )}
-          {anime.is_placeholder && (
-            <span className="mt-0.5 inline-flex w-fit items-center gap-1 rounded-full border border-orange/40 bg-orange/10 px-2 py-0.5 text-[0.6rem] font-bold text-[#ff5c8a]">
-              ⏳ Platzhalter
             </span>
           )}
         </div>

@@ -39,7 +39,7 @@ export const categoryTheme: Record<CategoryKey, CategoryTheme> = {
     bar: 'bg-green',
     dot: 'bg-green',
     chip: 'text-green border-green/40 bg-green/10',
-    tint: 'bg-green/[0.06] border-green/25',
+    tint: 'bg-green/[0.09] border-green/35',
   },
   suchtNeuigkeiten: {
     key: 'suchtNeuigkeiten',
@@ -49,7 +49,7 @@ export const categoryTheme: Record<CategoryKey, CategoryTheme> = {
     bar: 'bg-accent-neon',
     dot: 'bg-accent-neon',
     chip: 'text-accent-neon border-accent-neon/40 bg-accent-neon/10',
-    tint: 'bg-accent-neon/[0.06] border-accent-neon/25',
+    tint: 'bg-accent-neon/[0.09] border-accent-neon/35',
   },
   fortsetzung: {
     key: 'fortsetzung',
@@ -59,7 +59,7 @@ export const categoryTheme: Record<CategoryKey, CategoryTheme> = {
     bar: 'bg-accent-purple',
     dot: 'bg-accent-purple',
     chip: 'text-[#c18eff] border-accent-purple/40 bg-accent-purple/10',
-    tint: 'bg-accent-purple/[0.07] border-accent-purple/25',
+    tint: 'bg-accent-purple/[0.10] border-accent-purple/35',
   },
   neuerscheinung: {
     key: 'neuerscheinung',
@@ -69,7 +69,7 @@ export const categoryTheme: Record<CategoryKey, CategoryTheme> = {
     bar: 'bg-orange',
     dot: 'bg-orange',
     chip: 'text-[#ff5c8a] border-orange/40 bg-orange/10',
-    tint: 'bg-orange/[0.07] border-orange/25',
+    tint: 'bg-orange/[0.10] border-orange/35',
   },
   watchlist: {
     key: 'watchlist',
@@ -79,7 +79,7 @@ export const categoryTheme: Record<CategoryKey, CategoryTheme> = {
     bar: 'bg-blue',
     dot: 'bg-blue',
     chip: 'text-blue border-blue/40 bg-blue/10',
-    tint: 'bg-blue/[0.06] border-blue/25',
+    tint: 'bg-blue/[0.09] border-blue/35',
   },
   aktuell: {
     key: 'aktuell',
@@ -89,7 +89,7 @@ export const categoryTheme: Record<CategoryKey, CategoryTheme> = {
     bar: 'bg-accent-neon',
     dot: 'bg-accent-neon',
     chip: 'text-accent-neon border-accent-neon/40 bg-accent-neon/10',
-    tint: 'bg-accent-neon/[0.06] border-accent-neon/25',
+    tint: 'bg-accent-neon/[0.09] border-accent-neon/35',
   },
 };
 

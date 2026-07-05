@@ -144,7 +144,7 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
   const header: ReactNode = (
     <>
       {cover ? (
-        <img src={cover} alt="" className="mx-auto max-h-64 rounded-2xl object-contain shadow-card" />
+        <img src={cover} alt="" className="mx-auto max-h-80 rounded-2xl object-contain shadow-card" />
       ) : (
         <div
           className={cn(
@@ -168,7 +168,7 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
         </span>
       </div>
 
-      <h3 className="mt-2 text-xl font-extrabold leading-tight">{row.title}</h3>
+      <h3 className="mt-2 text-lg font-extrabold leading-tight">{row.title}</h3>
 
       {a?.airing && <AiringBanner broadcast={a.broadcast} />}
     </>
@@ -270,9 +270,9 @@ function DiscoverDetail({ malId, onClose }: { malId: number; onClose: () => void
       <img
         src={getCover(a) ?? ''}
         alt=""
-        className="mx-auto max-h-72 rounded-2xl object-contain shadow-glow-purple"
+        className="mx-auto max-h-96 rounded-2xl object-contain shadow-glow-purple"
       />
-      <h3 className="mt-4 text-xl font-extrabold leading-tight">{getBestTitle(a)}</h3>
+      <h3 className="mt-4 text-lg font-extrabold leading-tight">{getBestTitle(a)}</h3>
       {a.airing && <AiringBanner broadcast={a.broadcast} />}
     </>
   );

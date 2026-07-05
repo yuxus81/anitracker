@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useMemo, useState, type CSSProperties, type ComponentType, type SVGProps } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/queryClient';
 import { jikanApi } from '@/api/jikan';
@@ -9,21 +9,37 @@ import { PosterSkeletonRow } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { cn } from '@/utils/cn';
+import {
+  FilmIcon,
+  FlameIcon,
+  GridIcon,
+  HeartIcon,
+  SparkleIcon,
+  StarIcon,
+  TvIcon,
+} from '@/components/icons/CategoryIcons';
 import type { JikanAnime, JikanListResponse } from '@/types/jikan';
 import { PosterCard } from './PosterCard';
 
 type SearchType = 'tv' | 'movie' | null;
+type Icon = ComponentType<SVGProps<SVGSVGElement>>;
 interface Genre {
   id: number;
   name: string;
 }
 
-const CURATED: Array<{ key: string; title: string; run: (s: AbortSignal) => Promise<JikanListResponse> }> = [
-  { key: 'airing', title: '🔥 Gerade angesagt', run: (s) => jikanApi.getTop({ filter: 'airing' }, s) },
-  { key: 'season', title: '🆕 Neu diese Season', run: (s) => jikanApi.getSeasonNow(1, s) },
-  { key: 'top', title: '⭐ Beste Bewertung', run: (s) => jikanApi.getTop({}, s) },
-  { key: 'movies', title: '🎬 Top Filme', run: (s) => jikanApi.getTop({ type: 'movie' }, s) },
-  { key: 'popular', title: '💜 Am beliebtesten', run: (s) => jikanApi.getTop({ filter: 'bypopularity' }, s) },
+const CURATED: Array<{
+  key: string;
+  title: string;
+  Icon: Icon;
+  color: string;
+  run: (s: AbortSignal) => Promise<JikanListResponse>;
+}> = [
+  { key: 'airing', title: 'Gerade angesagt', Icon: FlameIcon, color: '#ff7043', run: (s) => jikanApi.getTop({ filter: 'airing' }, s) },
+  { key: 'season', title: 'Neu diese Season', Icon: SparkleIcon, color: '#5ad1ff', run: (s) => jikanApi.getSeasonNow(1, s) },
+  { key: 'top', title: 'Beste Bewertung', Icon: StarIcon, color: '#ffcf5c', run: (s) => jikanApi.getTop({}, s) },
+  { key: 'movies', title: 'Top Filme', Icon: FilmIcon, color: '#c9a8ff', run: (s) => jikanApi.getTop({ type: 'movie' }, s) },
+  { key: 'popular', title: 'Am beliebtesten', Icon: HeartIcon, color: '#ff5c8a', run: (s) => jikanApi.getTop({ filter: 'bypopularity' }, s) },
 ];
 
 /**
@@ -40,10 +56,28 @@ const GENRES: Genre[] = [
   { id: 8, name: 'Drama' },
 ];
 
-const TYPES: Array<{ key: SearchType; label: string }> = [
-  { key: null, label: 'Alle' },
-  { key: 'tv', label: 'Serien' },
-  { key: 'movie', label: 'Filme' },
+const TYPES: Array<{ key: SearchType; label: string; Icon: Icon; idle: string; active: string }> = [
+  {
+    key: null,
+    label: 'Alle',
+    Icon: GridIcon,
+    idle: 'border-white/10 bg-white/5 text-muted',
+    active: 'border-white/30 bg-white/10 text-white',
+  },
+  {
+    key: 'tv',
+    label: 'Serien',
+    Icon: TvIcon,
+    idle: 'border-accent-neon/20 bg-accent-neon/[0.06] text-accent-neon/75',
+    active: 'border-accent-neon bg-accent-neon/20 text-accent-neon',
+  },
+  {
+    key: 'movie',
+    label: 'Filme',
+    Icon: FilmIcon,
+    idle: 'border-accent-purple/25 bg-accent-purple/[0.06] text-[#c9a8ff]/80',
+    active: 'border-accent-purple bg-accent-purple/20 text-[#c9a8ff]',
+  },
 ];
 
 // ---- Per-genre atmosphere -------------------------------------------------
@@ -58,6 +92,8 @@ interface GenreTheme {
   shape: ParticleShape;
   /** Static Tailwind classes for the active pill (JIT-safe literals). */
   pill: string;
+  /** Faint always-on tint so the idle row already reads as colored, not gray. */
+  idle: string;
 }
 
 // Each wash: a strong top-anchored glow (radial) plus a faint full-height tint
@@ -70,6 +106,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
     particleColor: '#ff7043',
     shape: 'orb',
     pill: 'border-[#ff7043] bg-[#ff7043]/15 text-[#ff7043]',
+    idle: 'border-[#ff7043]/20 bg-[#ff7043]/[0.06] text-[#ff7043]/75',
   },
   // Abenteuer — emerald
   2: {
@@ -78,6 +115,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
     particleColor: '#48d597',
     shape: 'orb',
     pill: 'border-[#48d597] bg-[#48d597]/15 text-[#48d597]',
+    idle: 'border-[#48d597]/20 bg-[#48d597]/[0.06] text-[#48d597]/75',
   },
   // Fantasy — violet sparkle
   10: {
@@ -86,6 +124,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
     particleColor: '#c9a8ff',
     shape: 'star',
     pill: 'border-[#c9a8ff] bg-[#c9a8ff]/15 text-[#c9a8ff]',
+    idle: 'border-[#c9a8ff]/20 bg-[#c9a8ff]/[0.06] text-[#c9a8ff]/75',
   },
   // Romance — rose hearts
   22: {
@@ -94,6 +133,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
     particleColor: '#ff5c8a',
     shape: 'heart',
     pill: 'border-[#ff5c8a] bg-[#ff5c8a]/15 text-[#ff5c8a]',
+    idle: 'border-[#ff5c8a]/20 bg-[#ff5c8a]/[0.06] text-[#ff5c8a]/75',
   },
   // Sport — electric blue
   30: {
@@ -102,6 +142,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
     particleColor: '#5ad1ff',
     shape: 'orb',
     pill: 'border-[#5ad1ff] bg-[#5ad1ff]/15 text-[#5ad1ff]',
+    idle: 'border-[#5ad1ff]/20 bg-[#5ad1ff]/[0.06] text-[#5ad1ff]/75',
   },
   // Drama — warm theatrical amber-gold
   8: {
@@ -110,6 +151,7 @@ const GENRE_THEME: Record<number, GenreTheme> = {
     particleColor: '#ffcf5c',
     shape: 'orb',
     pill: 'border-[#ffcf5c] bg-[#ffcf5c]/15 text-[#ffcf5c]',
+    idle: 'border-[#ffcf5c]/20 bg-[#ffcf5c]/[0.06] text-[#ffcf5c]/75',
   },
 };
 
@@ -239,12 +281,11 @@ export function DiscoverPage() {
               type="button"
               onClick={() => setType(t.key)}
               className={cn(
-                'rounded-full border px-4 py-1.5 text-sm font-semibold transition',
-                type === t.key
-                  ? 'border-accent-purple bg-accent-purple/20 text-white'
-                  : 'border-white/10 bg-white/5 text-muted hover:text-white',
+                'inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm font-semibold transition',
+                type === t.key ? t.active : t.idle,
               )}
             >
+              <t.Icon className="h-4 w-4" />
               {t.label}
             </button>
           ))}
@@ -254,6 +295,7 @@ export function DiscoverPage() {
         <div className="-mx-4 mb-6 flex gap-2 overflow-x-auto px-4 pb-1">
           {GENRES.map((g) => {
             const active = genre?.id === g.id;
+            const theme = GENRE_THEME[g.id]!;
             return (
               <button
                 key={g.id}
@@ -264,9 +306,7 @@ export function DiscoverPage() {
                 }}
                 className={cn(
                   'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-sm font-semibold transition',
-                  active
-                    ? GENRE_THEME[g.id]?.pill
-                    : 'border-white/10 bg-white/5 text-muted hover:text-white',
+                  active ? theme.pill : theme.idle,
                 )}
               >
                 {g.name}
@@ -302,10 +342,14 @@ export function DiscoverPage() {
 /** One horizontally-scrolling row backed by any Jikan query. */
 function DiscoveryRow({
   title,
+  Icon,
+  color,
   queryKey,
   run,
 }: {
   title: string;
+  Icon: Icon;
+  color: string;
   queryKey: readonly unknown[];
   run: (s: AbortSignal) => Promise<JikanListResponse>;
 }) {
@@ -319,7 +363,15 @@ function DiscoveryRow({
 
   return (
     <section className="mb-7">
-      <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">{title}</h3>
+      <div className="mb-3 flex items-center gap-2.5">
+        <span
+          className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-xl"
+          style={{ backgroundColor: `${color}22`, color }}
+        >
+          <Icon className="h-[18px] w-[18px]" />
+        </span>
+        <h3 className="text-base font-extrabold tracking-tight text-ink">{title}</h3>
+      </div>
       {q.isLoading ? (
         <PosterSkeletonRow />
       ) : (
@@ -338,20 +390,28 @@ function DiscoveryRow({
 // Type-aware wrapper for the default curated rows.
 function DiscoveryRowFromCurated({ section }: { section: (typeof CURATED)[number] }) {
   return (
-    <DiscoveryRow title={section.title} queryKey={qk.discovery(section.key, 1, null)} run={section.run} />
+    <DiscoveryRow
+      title={section.title}
+      Icon={section.Icon}
+      color={section.color}
+      queryKey={qk.discovery(section.key, 1, null)}
+      run={section.run}
+    />
   );
 }
 
 /** Categorised, themed browse for one genre — mirrors the main "all" layout. */
 function GenreView({ genre, type }: { genre: Genre; type: SearchType }) {
+  const color = GENRE_THEME[genre.id]!.particleColor;
   const rows: Array<{
     key: string;
     title: string;
+    Icon: Icon;
     opts: Parameters<typeof jikanApi.byGenre>[1];
   }> = [
-    { key: 'popular', title: '🔥 Beliebt', opts: { orderBy: 'members' } },
-    { key: 'top', title: '⭐ Beste Bewertung', opts: { orderBy: 'score' } },
-    { key: 'new', title: '🆕 Neueste', opts: { orderBy: 'start_date' } },
+    { key: 'popular', title: 'Beliebt', Icon: FlameIcon, opts: { orderBy: 'members' } },
+    { key: 'top', title: 'Beste Bewertung', Icon: StarIcon, opts: { orderBy: 'score' } },
+    { key: 'new', title: 'Neueste', Icon: SparkleIcon, opts: { orderBy: 'start_date' } },
   ];
 
   return (
@@ -360,6 +420,8 @@ function GenreView({ genre, type }: { genre: Genre; type: SearchType }) {
         <DiscoveryRow
           key={row.key}
           title={row.title}
+          Icon={row.Icon}
+          color={color}
           queryKey={['discovery', `genre-${row.key}`, genre.id, type]}
           run={(s) => jikanApi.byGenre(genre.id, { ...row.opts, type: type ?? undefined }, s)}
         />

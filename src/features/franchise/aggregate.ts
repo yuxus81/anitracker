@@ -88,22 +88,33 @@ export async function aggregateFranchise(
     return data;
   };
 
-  const queue: number[] = [startId];
+  // Walk the relation graph one "wave" (BFS depth) at a time. Everything in a
+  // wave is dispatched together instead of awaited one-by-one: the shared
+  // Jikan request queue still paces the actual network calls, but responses
+  // for sibling entries now overlap instead of each waiting on the previous
+  // one's full round trip — a few franchise-wide waves instead of N serial
+  // round trips.
   const visited = new Set<number>([startId]);
   const members: JikanAnime[] = [];
+  let frontier: number[] = [startId];
 
-  while (queue.length > 0 && members.length < MAX_NODES) {
-    const id = queue.shift()!;
-    const a = await load(id);
-    members.push(a);
-    for (const rel of a.relations ?? []) {
-      if (!FRANCHISE_RELATIONS.has(rel.relation)) continue;
-      for (const entry of rel.entry) {
-        if (entry.type !== 'anime' || visited.has(entry.mal_id)) continue;
-        visited.add(entry.mal_id);
-        queue.push(entry.mal_id);
+  while (frontier.length > 0 && members.length < MAX_NODES) {
+    const batch = frontier.slice(0, MAX_NODES - members.length);
+    const loaded = await Promise.all(batch.map(load));
+    members.push(...loaded);
+
+    const nextFrontier: number[] = [];
+    for (const a of loaded) {
+      for (const rel of a.relations ?? []) {
+        if (!FRANCHISE_RELATIONS.has(rel.relation)) continue;
+        for (const entry of rel.entry) {
+          if (entry.type !== 'anime' || visited.has(entry.mal_id)) continue;
+          visited.add(entry.mal_id);
+          nextFrontier.push(entry.mal_id);
+        }
       }
     }
+    frontier = nextFrontier;
   }
 
   // Chronological order means each group array comes out sorted as we classify.

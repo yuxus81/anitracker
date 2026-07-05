@@ -272,7 +272,7 @@ function EntryDetail({
           <img
             src={entry.cover}
             alt=""
-            className="mx-auto max-h-52 rounded-2xl object-contain shadow-glow-purple"
+            className="mx-auto max-h-72 rounded-2xl object-contain shadow-glow-purple"
           />
         )}
         <h3 className="mt-3 text-lg font-extrabold leading-tight">{entry.title}</h3>
