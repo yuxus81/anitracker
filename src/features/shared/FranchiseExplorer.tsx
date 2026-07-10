@@ -46,7 +46,7 @@ export function FranchiseExplorer({
   header: ReactNode;
   actions: ReactNode;
 }) {
-  const { data, isLoading, isError, refetch } = useFranchiseAggregate(malId, true);
+  const { data, isLoading, isPartial, isError, refetch } = useFranchiseAggregate(malId, true);
   const [view, setView] = useState<View>({ level: 'overview' });
   const [dir, setDir] = useState<'none' | 'in' | 'back'>('none');
 
@@ -97,7 +97,10 @@ export function FranchiseExplorer({
             <ErrorState onRetry={() => refetch()} />
           </div>
         ) : (
-          <TilesGrid data={data} onOpen={(group) => go({ level: 'group', group })} />
+          <>
+            <TilesGrid data={data} onOpen={(group) => go({ level: 'group', group })} />
+            {isPartial && <PartialHint />}
+          </>
         )}
         {actions}
       </div>
@@ -107,6 +110,19 @@ export function FranchiseExplorer({
   return (
     <div key={key} className={anim}>
       {body}
+    </div>
+  );
+}
+
+/** Subtle "still loading more of the franchise" cue shown under partial tiles. */
+function PartialHint() {
+  return (
+    <div className="mb-1 flex items-center justify-center gap-2 text-xs font-medium text-muted">
+      <span
+        aria-hidden
+        className="h-3.5 w-3.5 animate-spin-slow rounded-full border-2 border-accent-neon/30 border-t-accent-neon"
+      />
+      Weitere Einträge werden geladen…
     </div>
   );
 }

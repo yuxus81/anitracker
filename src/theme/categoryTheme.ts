@@ -1,4 +1,5 @@
 import type { AnimeRow } from '@/types/db';
+import type { PopupAtmosphere } from '@/components/ui/ParticleField';
 
 export type CategoryKey =
   | 'gesehen'
@@ -114,4 +115,23 @@ export function categoryKeyForRow(row: AnimeRow): CategoryKey {
 /** Convenience: the full theme object for a row. */
 export function themeForRow(row: AnimeRow): CategoryTheme {
   return categoryTheme[categoryKeyForRow(row)];
+}
+
+/**
+ * Ambient particle motif per category, painted faintly behind the detail popup.
+ * Deliberately reads off the same identity colors: green sparkles for watched,
+ * purple crystal-stars for continuations, ember orbs for fresh releases, etc.
+ */
+export const categoryAtmosphere: Record<CategoryKey, PopupAtmosphere> = {
+  gesehen: { color: '#2ecc71', shape: 'star' },
+  suchtNeuigkeiten: { color: '#00f5d4', shape: 'orb' },
+  fortsetzung: { color: '#c18eff', shape: 'star' },
+  neuerscheinung: { color: '#ff5c8a', shape: 'orb' },
+  watchlist: { color: '#3a86ff', shape: 'orb' },
+  aktuell: { color: '#00f5d4', shape: 'orb' },
+};
+
+/** Convenience: the popup atmosphere motif for a row. */
+export function atmosphereForRow(row: AnimeRow): PopupAtmosphere {
+  return categoryAtmosphere[categoryKeyForRow(row)];
 }

@@ -19,6 +19,7 @@ import {
   TvIcon,
 } from '@/components/icons/CategoryIcons';
 import type { JikanAnime, JikanListResponse } from '@/types/jikan';
+import { ParticleGlyph, type ParticleShape, type PopupAtmosphere } from '@/components/ui/ParticleField';
 import { PosterCard } from './PosterCard';
 
 type SearchType = 'tv' | 'movie' | null;
@@ -81,8 +82,6 @@ const TYPES: Array<{ key: SearchType; label: string; Icon: Icon; idle: string; a
 ];
 
 // ---- Per-genre atmosphere -------------------------------------------------
-
-type ParticleShape = 'heart' | 'star' | 'orb';
 
 interface GenreTheme {
   /** Full-bleed background wash painted behind the page content. */
@@ -162,33 +161,6 @@ interface ParticleSpec {
   delay: number;
   opacity: number;
   rot: number;
-}
-
-function ParticleGlyph({ shape, color, size }: { shape: ParticleShape; color: string; size: number }) {
-  if (shape === 'heart') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden>
-        <path d="M12 21s-7.4-4.6-9.9-9C.8 8.7 2.3 5.2 5.6 5.2c2 0 3.4 1.2 4 2.4.6-1.2 2-2.4 4-2.4 3.3 0 4.8 3.5 3.5 6.8-2.5 4.4-9.1 8.8-9.1 8.8z" />
-      </svg>
-    );
-  }
-  if (shape === 'star') {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden>
-        <path d="M12 2c.5 4.8 2.2 6.5 7 7-4.8.5-6.5 2.2-7 7-.5-4.8-2.2-6.5-7-7 4.8-.5 6.5-2.2 7-7z" />
-      </svg>
-    );
-  }
-  return (
-    <span
-      style={{
-        width: size,
-        height: size,
-        background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
-      }}
-      className="block rounded-full"
-    />
-  );
 }
 
 /**
@@ -346,20 +318,24 @@ function DiscoveryRow({
   color,
   queryKey,
   run,
+  atmosphere,
 }: {
   title: string;
   Icon: Icon;
   color: string;
   queryKey: readonly unknown[];
   run: (s: AbortSignal) => Promise<JikanListResponse>;
+  atmosphere?: PopupAtmosphere;
 }) {
   const q = useQuery({
     queryKey,
     queryFn: async ({ signal }) => cleanDiscovery((await run(signal)).data).slice(0, 16),
   });
 
-  if (q.isError) return null;
-  if (!q.isLoading && (q.data?.length ?? 0) === 0) return null;
+  // Only hide a row once it has genuinely loaded empty. A transient error (e.g. a
+  // Jikan rate-limit hiccup) must NOT make the section silently vanish — that made
+  // the whole genre filter look broken. Offer a retry instead.
+  if (!q.isLoading && !q.isError && (q.data?.length ?? 0) === 0) return null;
 
   return (
     <section className="mb-7">
@@ -372,13 +348,21 @@ function DiscoveryRow({
         </span>
         <h3 className="text-base font-extrabold tracking-tight text-ink">{title}</h3>
       </div>
-      {q.isLoading ? (
+      {q.isError ? (
+        <button
+          type="button"
+          onClick={() => q.refetch()}
+          className="flex w-full items-center justify-center gap-2 rounded-xl2 border border-white/10 bg-white/[0.03] px-4 py-5 text-sm font-semibold text-muted transition hover:border-white/20 hover:text-white"
+        >
+          <span aria-hidden>↻</span> Konnte nicht laden — nochmal versuchen
+        </button>
+      ) : q.isLoading ? (
         <PosterSkeletonRow />
       ) : (
         <div className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
           {q.data!.map((a) => (
             <div key={a.mal_id} className="w-[184px] flex-shrink-0 snap-start">
-              <PosterCard anime={a} />
+              <PosterCard anime={a} atmosphere={atmosphere} />
             </div>
           ))}
         </div>
@@ -402,7 +386,9 @@ function DiscoveryRowFromCurated({ section }: { section: (typeof CURATED)[number
 
 /** Categorised, themed browse for one genre — mirrors the main "all" layout. */
 function GenreView({ genre, type }: { genre: Genre; type: SearchType }) {
-  const color = GENRE_THEME[genre.id]!.particleColor;
+  const theme = GENRE_THEME[genre.id]!;
+  const color = theme.particleColor;
+  const atmosphere: PopupAtmosphere = { color: theme.particleColor, shape: theme.shape };
   const rows: Array<{
     key: string;
     title: string;
@@ -424,6 +410,7 @@ function GenreView({ genre, type }: { genre: Genre; type: SearchType }) {
           color={color}
           queryKey={['discovery', `genre-${row.key}`, genre.id, type]}
           run={(s) => jikanApi.byGenre(genre.id, { ...row.opts, type: type ?? undefined }, s)}
+          atmosphere={atmosphere}
         />
       ))}
     </div>

@@ -48,7 +48,7 @@ export function AuthScreen() {
       <div className="w-full max-w-sm rounded-xl3 border border-accent-purple/25 bg-card p-8 shadow-modal">
         <div className="mb-7 text-center">
           <img
-            src={`${import.meta.env.BASE_URL}icons/icon-192.png`}
+            src={`${import.meta.env.BASE_URL}icons/icon-192-v2.png`}
             alt="AniTracker"
             width={64}
             height={64}

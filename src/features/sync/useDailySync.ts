@@ -6,25 +6,50 @@ import { jikanApi } from '@/api/jikan';
 import { isAired, parseJikanDate } from '@/utils/dates';
 import { getBestTitle, getCover } from '@/utils/titles';
 import { toast } from '@/store/ui';
+import type { AnimeRow } from '@/types/db';
 
-const THROTTLE_KEY = 'anitracker.lastSync';
-const INTERVAL_MS = 12 * 60 * 60 * 1000; // at most twice a day
+/** Strip the German " – Fortsetzung" suffix we append to placeholder titles. */
+function baseTitleOf(title: string): string {
+  return title.replace(/\s*[–-]\s*Fortsetzung\s*$/i, '').trim();
+}
 
-// Module-level guard: survives React StrictMode's double-mount so we sync once.
+/**
+ * The season a placeholder is waiting on a sequel for. Prefers the stored
+ * `source_mal_id`; for older placeholders (created before that column existed,
+ * e.g. Solo Leveling) it falls back to matching the base title against a
+ * tracked `watched` season that has a MAL id.
+ */
+function findSourceMalId(row: AnimeRow, rows: AnimeRow[]): number | null {
+  if (row.source_mal_id) return row.source_mal_id;
+  const base = baseTitleOf(row.title).toLowerCase();
+  if (!base) return null;
+  const match = rows.find(
+    (x) =>
+      x.mal_id != null &&
+      x.category === 'watched' &&
+      (x.title.toLowerCase() === base || x.title.toLowerCase().startsWith(base)),
+  );
+  return match?.mal_id ?? null;
+}
+
+// Module-level guard: survives React StrictMode's double-mount so we sync once
+// per app session (i.e. once per open), not once per component mount.
 let syncStarted = false;
 
 /**
- * Once-a-day background check: are any tracked continuations now released, and
- * did any "limbo" (uncertain) watched series get a sequel? All requests go
- * through the shared Jikan queue (serialized + backoff), failures are swallowed
- * per item so one bad lookup never aborts the run.
+ * Runs once per app open: are any tracked continuations now released, and did
+ * any "limbo" (uncertain) watched series or placeholder get a sequel? All
+ * requests go through the shared Jikan queue (serialized + backoff), failures
+ * are swallowed per item so one bad lookup never aborts the run.
  */
 async function runSync(qc: QueryClient): Promise<void> {
   const rows = await fetchAnimes();
   let updates = 0;
 
   // a) Unreleased continuations with a MAL id → did they air?
-  const pending = rows.filter((r) => r.category === 'next_season' && !r.is_released && r.mal_id);
+  const pending = rows.filter(
+    (r) => r.category === 'next_season' && !r.is_released && r.mal_id && !r.is_placeholder,
+  );
   for (const r of pending) {
     try {
       const a = (await jikanApi.getAnime(r.mal_id!)).data;
@@ -73,21 +98,62 @@ async function runSync(qc: QueryClient): Promise<void> {
     }
   }
 
+  // c) Placeholder continuations (no MAL id yet) → has the season we're waiting
+  // on finally got an officially listed sequel? If so, upgrade the placeholder
+  // in place with the real id + metadata; from then on arm (a) tracks its
+  // release like any other continuation.
+  const placeholders = rows.filter(
+    (r) => r.category === 'next_season' && r.is_placeholder && !r.is_released,
+  );
+  for (const r of placeholders) {
+    try {
+      const sourceMalId = findSourceMalId(r, rows);
+      if (!sourceMalId) continue;
+      // Persist a title-matched source so future runs resolve it directly.
+      if (!r.source_mal_id) {
+        await updateAnime(r.id, { source_mal_id: sourceMalId });
+      }
+
+      const relations = (await jikanApi.getRelations(sourceMalId)).data;
+      const sequel = relations
+        .find((x) => x.relation === 'Sequel')
+        ?.entry.find((e) => e.type === 'anime');
+      if (!sequel) continue;
+      // Already tracked under its real id elsewhere → don't create a duplicate.
+      if (rows.some((x) => x.id !== r.id && x.mal_id === sequel.mal_id)) continue;
+
+      const full = (await jikanApi.getAnime(sequel.mal_id)).data;
+      const released = isAired(full.status);
+      await updateAnime(r.id, {
+        title: getBestTitle(full),
+        mal_id: sequel.mal_id,
+        cover_url: getCover(full) ?? r.cover_url,
+        format: full.type === 'Movie' ? 'movie' : 'season',
+        release_label: released ? 'Verfügbar' : (parseJikanDate(full) ?? 'Datum unbekannt'),
+        is_released: released,
+        is_placeholder: false,
+        source_mal_id: null,
+        last_updated_at: new Date().toISOString(),
+      });
+      toast.success(`„${getBestTitle(full)}" ist jetzt offiziell angekündigt!`, '🔮');
+      updates += 1;
+    } catch {
+      /* ignore this item, continue */
+    }
+  }
+
   if (updates > 0) {
     await qc.invalidateQueries({ queryKey: qk.animes });
     toast.success(`${updates} Update${updates > 1 ? 's' : ''} gefunden!`, '🔄');
   }
 }
 
-/** Kick off the daily sync while the user is logged in (throttled via localStorage). */
+/** Kick off the sync once per app session, as soon as the user is logged in. */
 export function useDailySync(enabled: boolean) {
   const qc = useQueryClient();
   useEffect(() => {
     if (!enabled || syncStarted) return;
-    const last = Number(localStorage.getItem(THROTTLE_KEY) ?? 0);
-    if (Date.now() - last < INTERVAL_MS) return;
     syncStarted = true;
-    localStorage.setItem(THROTTLE_KEY, String(Date.now()));
     runSync(qc).catch(() => {
       /* never crash the app over a background sync */
     });

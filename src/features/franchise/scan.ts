@@ -1,4 +1,4 @@
-import { jikanApi } from '@/api/jikan';
+import { getAnimeFullCached } from '@/lib/jikanCache';
 import { getBestTitle, getCover } from '@/utils/titles';
 import { parseJikanDate, isAired } from '@/utils/dates';
 import type { JikanAnime, JikanRelation } from '@/types/jikan';
@@ -53,7 +53,7 @@ export async function scanFranchise(startId: number, signal?: AbortSignal): Prom
   async function load(id: number): Promise<JikanAnime> {
     const cached = cache.get(id);
     if (cached) return cached;
-    const data = (await jikanApi.getAnimeFull(id, signal)).data;
+    const data = await getAnimeFullCached(id, signal);
     cache.set(id, data);
     return data;
   }

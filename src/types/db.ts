@@ -24,6 +24,8 @@ export interface AnimeRow {
   release_label: string | null;
   is_released: boolean;
   is_placeholder: boolean;
+  /** For placeholder continuations: MAL id of the finished season we watch for a sequel. */
+  source_mal_id: number | null;
   last_updated_at: string | null;
   sort_order: number | null;
   franchise_meta: FranchiseMeta | null;
@@ -41,6 +43,7 @@ export interface NewAnime {
   release_label?: string | null;
   is_released?: boolean;
   is_placeholder?: boolean;
+  source_mal_id?: number | null;
   last_updated_at?: string | null;
   sort_order?: number | null;
   franchise_meta?: FranchiseMeta | null;

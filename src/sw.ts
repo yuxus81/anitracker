@@ -34,8 +34,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: payload.body ?? 'Es gibt Neuigkeiten zu deinen Animes.',
-      icon: payload.icon ?? 'icons/icon-192.png',
-      badge: 'icons/icon-192.png',
+      icon: payload.icon ?? 'icons/icon-192-v2.png',
+      badge: 'icons/icon-192-v2.png',
       data: { url: payload.url ?? '/' },
     }),
   );

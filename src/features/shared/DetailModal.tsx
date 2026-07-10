@@ -4,11 +4,12 @@ import { ActionButton, type ActionVariant } from '@/components/ui/ActionButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { FilmIcon } from '@/components/icons/CategoryIcons';
+import { ParticleField, type PopupAtmosphere } from '@/components/ui/ParticleField';
 import { qk } from '@/lib/queryClient';
-import { jikanApi } from '@/api/jikan';
+import { getAnimeFullCached } from '@/lib/jikanCache';
 import { getBestTitle, getCover } from '@/utils/titles';
 import { cn } from '@/utils/cn';
-import { categoryKeyForRow, themeForRow } from '@/theme/categoryTheme';
+import { atmosphereForRow, categoryKeyForRow, themeForRow } from '@/theme/categoryTheme';
 import { useDetailStore } from './detailStore';
 import { FranchiseExplorer } from './FranchiseExplorer';
 import { AiringBanner, EntryStats, StatTile, TileSkeletons, formatLabel } from './detailParts';
@@ -18,14 +19,29 @@ import { toast } from '@/store/ui';
 import type { AnimeRow } from '@/types/db';
 import type { ReactNode } from 'react';
 
+// Fallback motif for a discovery popup opened without a genre context.
+const DEFAULT_DISCOVER_ATMOSPHERE: PopupAtmosphere = { color: '#c9a8ff', shape: 'star' };
+
 export function DetailModal() {
   const malId = useDetailStore((s) => s.malId);
   const row = useDetailStore((s) => s.row);
+  const storedAtmosphere = useDetailStore((s) => s.atmosphere);
   const close = useDetailStore((s) => s.close);
   const open = malId !== null || row !== null;
 
+  const atmosphere: PopupAtmosphere | null = row
+    ? atmosphereForRow(row)
+    : malId !== null
+      ? (storedAtmosphere ?? DEFAULT_DISCOVER_ATMOSPHERE)
+      : null;
+
   return (
-    <Modal open={open} onClose={close} size="md">
+    <Modal
+      open={open}
+      onClose={close}
+      size="md"
+      atmosphere={atmosphere && <ParticleField color={atmosphere.color} shape={atmosphere.shape} />}
+    >
       {row ? (
         <LibraryDetail row={row} onClose={close} />
       ) : malId !== null ? (
@@ -82,7 +98,7 @@ function LibraryDetail({ row, onClose }: { row: AnimeRow; onClose: () => void })
   const detail = useQuery({
     queryKey: row.mal_id != null ? qk.animeDetail(row.mal_id) : ['anime-detail', 'none'],
     enabled: row.mal_id != null,
-    queryFn: async ({ signal }) => (await jikanApi.getAnimeFull(row.mal_id!, signal)).data,
+    queryFn: ({ signal }) => getAnimeFullCached(row.mal_id!, signal),
   });
   const a = detail.data;
   const cover = (a && getCover(a)) || row.cover_url;
@@ -226,7 +242,7 @@ function DiscoverDetail({ malId, onClose }: { malId: number; onClose: () => void
 
   const detail = useQuery({
     queryKey: qk.animeDetail(malId),
-    queryFn: async ({ signal }) => (await jikanApi.getAnimeFull(malId, signal)).data,
+    queryFn: ({ signal }) => getAnimeFullCached(malId, signal),
   });
 
   const tracked = animes?.find((x) => x.mal_id === malId);

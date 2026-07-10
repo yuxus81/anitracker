@@ -48,8 +48,18 @@ async function run<T>(path: string, signal?: AbortSignal): Promise<T> {
       lastRequestAt = Date.now();
     }
 
-    if (res.status === 429) {
-      if (attempt >= MAX_RETRIES) throw new JikanError(429, 'Anime-API ist überlastet (Rate Limit)');
+    // Retry transient failures: rate limiting (429) AND upstream gateway errors
+    // (502/503/504 — Jikan's aggregation endpoints like /top and /seasons flake
+    // under load). 404 is a real "not found" and must never be retried.
+    if (res.status === 429 || res.status >= 500) {
+      if (attempt >= MAX_RETRIES) {
+        throw new JikanError(
+          res.status,
+          res.status === 429
+            ? 'Anime-API ist überlastet (Rate Limit)'
+            : 'Anime-API momentan nicht erreichbar',
+        );
+      }
       await delay(600 * 2 ** attempt + 400);
       attempt += 1;
       continue;

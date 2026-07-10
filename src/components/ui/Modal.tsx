@@ -15,6 +15,8 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg';
   labelledBy?: string;
   className?: string;
+  /** Optional ambient layer (e.g. a themed ParticleField) painted behind content. */
+  atmosphere?: ReactNode;
 }
 
 const sizes = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg' } as const;
@@ -31,6 +33,7 @@ export function Modal({
   size = 'md',
   labelledBy,
   className,
+  atmosphere,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
@@ -105,11 +108,16 @@ export function Modal({
         aria-labelledby={labelledBy}
         className={cn(
           'relative w-full bg-card rounded-xl3 px-3.5 py-7 shadow-modal border border-white/10',
-          'max-h-[85dvh] flex flex-col animate-stagger',
+          'max-h-[85dvh] flex flex-col animate-modal-pop',
           sizes[size],
           className,
         )}
       >
+        {atmosphere && (
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-xl3">
+            {atmosphere}
+          </div>
+        )}
         {onBack && (
           <button
             type="button"
@@ -130,12 +138,12 @@ export function Modal({
         </button>
 
         {title && (
-          <h3 id={labelledBy} className="mt-2 mb-5 text-center text-xl font-extrabold px-8">
+          <h3 id={labelledBy} className="relative z-10 mt-2 mb-5 text-center text-xl font-extrabold px-8">
             {title}
           </h3>
         )}
 
-        <div className="overflow-y-auto flex-1 px-3.5">{children}</div>
+        <div className="relative z-10 overflow-y-auto flex-1 px-3.5">{children}</div>
       </div>
     </div>,
     document.body,

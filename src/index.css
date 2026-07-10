@@ -122,6 +122,27 @@
     animation: genreFloat linear infinite;
     will-change: transform, opacity;
   }
+
+  /* Ambient particle inside a popup: gently bobs + twinkles in place (kept in
+     the box by the parent's overflow-hidden). Duration/delay set inline. */
+  .popup-particle {
+    animation: popupTwinkle ease-in-out infinite alternate;
+    will-change: transform, opacity;
+  }
+}
+
+@keyframes popupTwinkle {
+  0% {
+    transform: translateY(5px) scale(0.9) rotate(0deg);
+    opacity: 0;
+  }
+  55% {
+    opacity: var(--p-opacity, 0.3);
+  }
+  100% {
+    transform: translateY(-7px) scale(1.06) rotate(var(--p-rot, 8deg));
+    opacity: calc(var(--p-opacity, 0.3) * 0.55);
+  }
 }
 
 @keyframes timelinePop {

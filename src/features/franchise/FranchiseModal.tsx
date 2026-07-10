@@ -212,12 +212,16 @@ function FranchiseWizard({ seed, onDone }: { seed: FranchiseSeed; onDone: () => 
             setBusy(true);
             try {
               await finalizeWatched('active');
+              const finished = pickFinishedNode();
               await addAnime.mutateAsync({
-                title: `${pickFinishedNode()?.title ?? seed.title} – Fortsetzung`,
+                title: `${finished?.title ?? seed.title} – Fortsetzung`,
                 category: 'next_season',
                 status: 'active',
                 mal_id: null,
-                cover_url: pickFinishedNode()?.cover ?? seed.coverUrl,
+                // Remember which season we're waiting on a sequel for, so the
+                // daily sync can auto-upgrade this placeholder once MAL lists one.
+                source_mal_id: finished?.malId ?? seed.malId,
+                cover_url: finished?.cover ?? seed.coverUrl,
                 format,
                 release_label: label.trim() || 'Datum unbekannt',
                 is_released: false,

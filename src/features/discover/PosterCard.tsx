@@ -1,16 +1,17 @@
 import type { JikanAnime } from '@/types/jikan';
 import { getBestTitle, getCover } from '@/utils/titles';
 import { useDetailStore } from '@/features/shared/detailStore';
+import type { PopupAtmosphere } from '@/components/ui/ParticleField';
 
 /** Clickable poster for a Jikan discovery result. Opens the detail modal. */
-export function PosterCard({ anime }: { anime: JikanAnime }) {
+export function PosterCard({ anime, atmosphere }: { anime: JikanAnime; atmosphere?: PopupAtmosphere }) {
   const openDetail = useDetailStore((s) => s.open);
   const cover = getCover(anime);
 
   return (
     <button
       type="button"
-      onClick={() => openDetail(anime.mal_id)}
+      onClick={() => openDetail(anime.mal_id, atmosphere)}
       className="group block w-full text-left"
       aria-label={`Details zu ${getBestTitle(anime)}`}
     >

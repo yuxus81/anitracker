@@ -9,7 +9,7 @@ export function Header() {
     <header className="relative z-10 flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+18px)] pb-4 md:px-10">
       <Link to="/" className="flex items-center gap-3 transition hover:scale-[1.03]">
         <img
-          src={`${import.meta.env.BASE_URL}icons/icon-192.png`}
+          src={`${import.meta.env.BASE_URL}icons/icon-192-v2.png`}
           alt="AniTracker"
           width={44}
           height={44}

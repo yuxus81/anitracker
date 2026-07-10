@@ -97,6 +97,11 @@ export default {
           from: { opacity: '0', transform: 'translateX(-22px)' },
           to: { opacity: '1', transform: 'translateX(0)' },
         },
+        modalPop: {
+          '0%': { opacity: '0', transform: 'translateY(16px) scale(0.94)' },
+          '60%': { opacity: '1', transform: 'translateY(-2px) scale(1.008)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
       },
       animation: {
         // Soft, unhurried ease-out everywhere. Entrances are deliberately long and
@@ -113,6 +118,7 @@ export default {
         'page-fade': 'pageFade 0.65s cubic-bezier(0.22,1,0.36,1) both',
         'drill-in': 'drillIn 0.34s cubic-bezier(0.16,1,0.3,1) both',
         'drill-back': 'drillBack 0.34s cubic-bezier(0.16,1,0.3,1) both',
+        'modal-pop': 'modalPop 0.42s cubic-bezier(0.22,1,0.36,1) both',
       },
     },
   },

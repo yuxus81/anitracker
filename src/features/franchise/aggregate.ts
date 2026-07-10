@@ -1,4 +1,5 @@
-import { jikanApi } from '@/api/jikan';
+import { getAnimeFullCached } from '@/lib/jikanCache';
+import { JikanError } from '@/api/jikan';
 import { getBestTitle, getCover } from '@/utils/titles';
 import { parseJikanDate } from '@/utils/dates';
 import type { JikanAnime, JikanBroadcast } from '@/types/jikan';
@@ -69,56 +70,10 @@ function toEntry(a: JikanAnime): FranchiseEntry {
   };
 }
 
-/**
- * Walks the entire franchise graph from `startId` (breadth-first across every
- * franchise relation, deduplicated and capped) and groups the members by type,
- * chronologically, alongside a total episode count and episode-weighted score.
- * Each anime is fetched once via `/full`, which bundles details and relations.
- */
-export async function aggregateFranchise(
-  startId: number,
-  signal?: AbortSignal,
-): Promise<FranchiseAggregate> {
-  const cache = new Map<number, JikanAnime>();
-  const load = async (id: number): Promise<JikanAnime> => {
-    const hit = cache.get(id);
-    if (hit) return hit;
-    const data = (await jikanApi.getAnimeFull(id, signal)).data;
-    cache.set(id, data);
-    return data;
-  };
-
-  // Walk the relation graph one "wave" (BFS depth) at a time. Everything in a
-  // wave is dispatched together instead of awaited one-by-one: the shared
-  // Jikan request queue still paces the actual network calls, but responses
-  // for sibling entries now overlap instead of each waiting on the previous
-  // one's full round trip — a few franchise-wide waves instead of N serial
-  // round trips.
-  const visited = new Set<number>([startId]);
-  const members: JikanAnime[] = [];
-  let frontier: number[] = [startId];
-
-  while (frontier.length > 0 && members.length < MAX_NODES) {
-    const batch = frontier.slice(0, MAX_NODES - members.length);
-    const loaded = await Promise.all(batch.map(load));
-    members.push(...loaded);
-
-    const nextFrontier: number[] = [];
-    for (const a of loaded) {
-      for (const rel of a.relations ?? []) {
-        if (!FRANCHISE_RELATIONS.has(rel.relation)) continue;
-        for (const entry of rel.entry) {
-          if (entry.type !== 'anime' || visited.has(entry.mal_id)) continue;
-          visited.add(entry.mal_id);
-          nextFrontier.push(entry.mal_id);
-        }
-      }
-    }
-    frontier = nextFrontier;
-  }
-
+/** Classify a set of franchise members into the grouped, chronological rollup. */
+function groupMembers(members: JikanAnime[]): FranchiseAggregate {
   // Chronological order means each group array comes out sorted as we classify.
-  members.sort((x, y) => airedMs(x) - airedMs(y));
+  const sorted = [...members].sort((x, y) => airedMs(x) - airedMs(y));
 
   const seasons: FranchiseEntry[] = [];
   const movies: FranchiseEntry[] = [];
@@ -128,7 +83,7 @@ export async function aggregateFranchise(
   let scoreWeight = 0;
   let weight = 0;
 
-  for (const a of members) {
+  for (const a of sorted) {
     if (a.status === 'Not yet aired') {
       announced.push(toEntry(a));
       continue;
@@ -157,4 +112,77 @@ export async function aggregateFranchise(
     episodes,
     score: weight > 0 ? round1(scoreWeight / weight) : null,
   };
+}
+
+export interface AggregateOptions {
+  signal?: AbortSignal;
+  /**
+   * Called after every BFS wave with the rollup computed so far. Lets the UI
+   * paint partial tiles within ~1–2s and fill them in live, instead of blocking
+   * on a blank skeleton until the whole franchise finished loading.
+   */
+  onWave?: (partial: FranchiseAggregate) => void;
+}
+
+/**
+ * Walks the entire franchise graph from `startId` (breadth-first across every
+ * franchise relation, deduplicated and capped) and groups the members by type,
+ * chronologically, alongside a total episode count and episode-weighted score.
+ * Each anime is fetched once via `/full` (persistently cached), so repeat and
+ * cross-franchise visits skip the network entirely.
+ */
+export async function aggregateFranchise(
+  startId: number,
+  opts: AggregateOptions = {},
+): Promise<FranchiseAggregate> {
+  const { signal, onWave } = opts;
+
+  // Walk the relation graph one "wave" (BFS depth) at a time. Everything in a
+  // wave is dispatched together instead of awaited one-by-one: the shared
+  // Jikan request queue still paces the actual network calls, but responses
+  // for sibling entries now overlap instead of each waiting on the previous
+  // one's full round trip — a few franchise-wide waves instead of N serial
+  // round trips. Cache hits resolve without touching the queue at all.
+  const visited = new Set<number>([startId]);
+  const members: JikanAnime[] = [];
+  let frontier: number[] = [startId];
+
+  while (frontier.length > 0 && members.length < MAX_NODES) {
+    if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const batch = frontier.slice(0, MAX_NODES - members.length);
+    // allSettled, not all: a single flaky node (Jikan 5xx/timeout) must not sink
+    // the whole franchise rollup. Skip the failures, keep what loaded.
+    const settled = await Promise.allSettled(batch.map((id) => getAnimeFullCached(id, signal)));
+    const loaded = settled
+      .filter((r): r is PromiseFulfilledResult<JikanAnime> => r.status === 'fulfilled')
+      .map((r) => r.value);
+    members.push(...loaded);
+
+    const nextFrontier: number[] = [];
+    for (const a of loaded) {
+      for (const rel of a.relations ?? []) {
+        if (!FRANCHISE_RELATIONS.has(rel.relation)) continue;
+        for (const entry of rel.entry) {
+          if (entry.type !== 'anime' || visited.has(entry.mal_id)) continue;
+          visited.add(entry.mal_id);
+          nextFrontier.push(entry.mal_id);
+        }
+      }
+    }
+    frontier = nextFrontier;
+
+    // Emit progress after each wave (but not the final one — the caller gets
+    // that as the resolved value, avoiding a redundant duplicate render).
+    if (onWave && frontier.length > 0 && members.length < MAX_NODES) {
+      onWave(groupMembers(members));
+    }
+  }
+
+  // Only a total wipeout (e.g. the seed itself is unreachable) is a real error;
+  // surface it so the popup shows a retry instead of an empty, misleading rollup.
+  if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+  if (members.length === 0) {
+    throw new JikanError(0, 'Franchise konnte nicht geladen werden');
+  }
+  return groupMembers(members);
 }

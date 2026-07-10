@@ -53,11 +53,15 @@ export default defineConfig({
         background_color: '#0d0f18',
         display: 'standalone',
         orientation: 'portrait',
+        // NOTE: the `-v2` filenames are intentional. Android bakes the install
+        // icon + splash screen into a WebAPK and only regenerates it when the
+        // manifest's icon *paths* change. Renaming on every logo change is the
+        // reliable way to force the launcher and splash to pick up new artwork.
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'icons/icon-192-v2.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icons/icon-512-v2.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           {
-            src: 'icons/icon-maskable-512.png',
+            src: 'icons/icon-maskable-512-v2.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
