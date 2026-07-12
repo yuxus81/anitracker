@@ -21,9 +21,33 @@ export class JikanError extends Error {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-// Serial queue: every request is chained so we never burst the API.
-let queue: Promise<unknown> = Promise.resolve();
+/**
+ * Two-class serial queue. All requests still run strictly one at a time (never
+ * bursting the API), but interactive work (search, popup detail, franchise
+ * walk) always overtakes background work (the app-open sync). Without this,
+ * opening the app queued the whole sync FIRST and every popup/search waited
+ * seconds behind it.
+ */
+export type JikanPriority = 'interactive' | 'background';
+
+interface QueueTask {
+  exec: () => Promise<void>;
+}
+
+const queues: Record<JikanPriority, QueueTask[]> = { interactive: [], background: [] };
+let pumping = false;
 let lastRequestAt = 0;
+
+async function pump(): Promise<void> {
+  if (pumping) return;
+  pumping = true;
+  for (;;) {
+    const task = queues.interactive.shift() ?? queues.background.shift();
+    if (!task) break;
+    await task.exec();
+  }
+  pumping = false;
+}
 
 async function run<T>(path: string, signal?: AbortSignal): Promise<T> {
   const gap = MIN_GAP_MS - (Date.now() - lastRequestAt);
@@ -72,10 +96,15 @@ async function run<T>(path: string, signal?: AbortSignal): Promise<T> {
 }
 
 /** Enqueue a Jikan request. Rejections propagate to the caller; the queue survives. */
-export function jikan<T>(path: string, signal?: AbortSignal): Promise<T> {
-  const result = queue.then(() => run<T>(path, signal));
-  queue = result.catch(() => undefined);
-  return result;
+export function jikan<T>(
+  path: string,
+  signal?: AbortSignal,
+  priority: JikanPriority = 'interactive',
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    queues[priority].push({ exec: () => run<T>(path, signal).then(resolve, reject) });
+    void pump();
+  });
 }
 
 const enc = encodeURIComponent;
@@ -90,12 +119,12 @@ export const jikanApi = {
     return jikan<JikanSingleResponse>(`/anime/${malId}/full`, signal);
   },
 
-  getAnime(malId: number, signal?: AbortSignal) {
-    return jikan<JikanSingleResponse>(`/anime/${malId}`, signal);
+  getAnime(malId: number, signal?: AbortSignal, priority: JikanPriority = 'interactive') {
+    return jikan<JikanSingleResponse>(`/anime/${malId}`, signal, priority);
   },
 
-  getRelations(malId: number, signal?: AbortSignal) {
-    return jikan<JikanRelationsResponse>(`/anime/${malId}/relations`, signal);
+  getRelations(malId: number, signal?: AbortSignal, priority: JikanPriority = 'interactive') {
+    return jikan<JikanRelationsResponse>(`/anime/${malId}/relations`, signal, priority);
   },
 
   getRecommendations(malId: number, signal?: AbortSignal) {

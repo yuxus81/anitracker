@@ -27,6 +27,7 @@ function metaScore(r: AnimeRow): number {
 /** Normalized title for matching: strip accents/punctuation, lowercase, collapse spaces. */
 export function normalizeTitle(title: string): string {
   return title
+    .replace(/ß/g, 'ss') // NFD doesn't decompose ß; map it before the ASCII filter eats it
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()

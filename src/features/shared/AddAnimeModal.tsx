@@ -4,10 +4,12 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { useUIStore, toast } from '@/store/ui';
-import { useAddAnime } from '@/hooks/useAnimes';
+import { useAddAnime, useAnimesQuery } from '@/hooks/useAnimes';
 import { useAnimeSearch } from '@/hooks/useSearch';
 import { useFranchiseStore } from '@/features/franchise/franchiseStore';
 import { getBestTitle, getCover } from '@/utils/titles';
+import { isAired, parseJikanDate } from '@/utils/dates';
+import { themeForRow } from '@/theme/categoryTheme';
 import { cn } from '@/utils/cn';
 import type { AnimeCategory } from '@/types/db';
 import type { JikanAnime } from '@/types/jikan';
@@ -35,6 +37,7 @@ export function AddAnimeModal() {
   const [query, setQuery] = useState('');
   const search = useAnimeSearch(query);
   const addAnime = useAddAnime();
+  const { data: animes } = useAnimesQuery();
   const openFranchise = useFranchiseStore((s) => s.open);
 
   // Keep the target in sync with the preset each time the modal opens.
@@ -60,13 +63,22 @@ export function AddAnimeModal() {
     const title = getBestTitle(anime);
     const coverUrl = getCover(anime);
 
-    // "Geschaut" routes through the franchise timeline scanner instead of a plain insert.
+    // "Geschaut" routes through the franchise timeline scanner instead of a plain
+    // insert — the scanner updates an existing row itself, so no dup check here.
     if (target === 'watched') {
       handleClose();
       openFranchise({ malId: anime.mal_id, title, coverUrl });
       return;
     }
 
+    // Guard against silently creating a second row for an already-tracked anime.
+    const existing = animes?.find((x) => x.mal_id === anime.mal_id);
+    if (existing) {
+      toast.info(`„${title}" ist bereits in deiner Sammlung (${themeForRow(existing).label})`);
+      return;
+    }
+
+    const released = isAired(anime.status);
     await addAnime.mutateAsync({
       title,
       category: target,
@@ -76,8 +88,15 @@ export function AddAnimeModal() {
       is_released: false,
       is_placeholder: false,
       sort_order: Date.now(),
+      // A continuation gets its real type and release state from the picked
+      // entry — a movie stays a movie, an already-aired pick lands under
+      // "Neuerscheinungen" instead of waiting for the next sync to notice.
       ...(target === 'next_season'
-        ? { format: 'season', release_label: 'Datum unbekannt' }
+        ? {
+            format: anime.type === 'Movie' ? ('movie' as const) : ('season' as const),
+            release_label: released ? 'Verfügbar' : (parseJikanDate(anime) ?? 'Datum unbekannt'),
+            is_released: released,
+          }
         : {}),
     });
     toast.success(`„${title}" hinzugefügt`);

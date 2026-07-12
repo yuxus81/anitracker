@@ -100,6 +100,11 @@ export function FranchiseExplorer({
           <>
             <TilesGrid data={data} onOpen={(group) => go({ level: 'group', group })} />
             {isPartial && <PartialHint />}
+            {!isPartial && data.truncated && (
+              <p className="mb-1 text-[0.65rem] font-medium text-muted">
+                Sehr großes Franchise — gezählt werden die ersten 40 Einträge.
+              </p>
+            )}
           </>
         )}
         {actions}

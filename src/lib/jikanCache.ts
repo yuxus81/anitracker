@@ -19,6 +19,9 @@ const DB_VERSION = 1;
 const STORE = 'anime-full';
 // Serve from cache for up to a week; relations/metadata barely move day to day.
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+// Currently-airing entries change weekly (episode count, next broadcast slot),
+// so they get a much shorter shelf life than finished shows.
+const AIRING_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 interface CachedEntry {
   malId: number;
@@ -74,6 +77,27 @@ function writeEntry(db: IDBDatabase, entry: CachedEntry): void {
   }
 }
 
+// Once per session, sweep out entries past the hard TTL so the store doesn't
+// grow forever (stale rows were previously only replaced, never removed).
+let sweepDone = false;
+
+function sweepExpired(db: IDBDatabase): void {
+  if (sweepDone) return;
+  sweepDone = true;
+  try {
+    const cursorReq = db.transaction(STORE, 'readwrite').objectStore(STORE).openCursor();
+    cursorReq.onsuccess = () => {
+      const cursor = cursorReq.result;
+      if (!cursor) return;
+      const entry = cursor.value as CachedEntry;
+      if (Date.now() - entry.ts > MAX_AGE_MS) cursor.delete();
+      cursor.continue();
+    };
+  } catch {
+    /* best-effort cleanup */
+  }
+}
+
 // Coalesces concurrent misses for the same id into ONE network request. Without
 // this, a single popup fires the seed anime twice (its detail query AND the
 // franchise aggregate's first node), and React StrictMode's double-mount doubles
@@ -114,8 +138,12 @@ export async function getAnimeFullCached(malId: number, signal?: AbortSignal): P
 
   const db = await openDb();
   if (db) {
+    sweepExpired(db);
     const hit = await readEntry(db, malId);
-    if (hit && Date.now() - hit.ts < MAX_AGE_MS) return hit.data;
+    if (hit) {
+      const maxAge = hit.data.airing ? AIRING_MAX_AGE_MS : MAX_AGE_MS;
+      if (Date.now() - hit.ts < maxAge) return hit.data;
+    }
   }
 
   let shared = pending.get(malId);

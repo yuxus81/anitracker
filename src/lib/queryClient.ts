@@ -24,5 +24,4 @@ export const qk = {
   search: (query: string) => ['search', query] as const,
   animeDetail: (malId: number) => ['anime-detail', malId] as const,
   franchise: (malId: number) => ['franchise', malId] as const,
-  franchiseAggregate: (malId: number) => ['franchise-aggregate', malId] as const,
 };

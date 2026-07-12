@@ -29,10 +29,11 @@ export function getCover(anime: JikanAnime): string | null {
 /** Normalized base title for de-duplication (strips season/part suffixes). */
 export function baseTitle(anime: JikanAnime): string {
   const t = getBestTitle(anime);
-  return t
-    .split(':')[0]!
-    .split(' Season')[0]!
-    .split(' Part')[0]!
-    .trim()
-    .toLowerCase();
+  // Only treat a colon as a subtitle separator when a real name precedes it.
+  // Short prefixes are part of the title itself ("Re:Zero", "Dr.:..."), and
+  // cutting there collapsed unrelated shows ("Re:Zero" & "Re:Creators" → "re")
+  // so one of them silently vanished from search results.
+  const colon = t.indexOf(':');
+  const base = colon > 3 ? t.slice(0, colon) : t;
+  return base.split(' Season')[0]!.split(' Part')[0]!.trim().toLowerCase();
 }

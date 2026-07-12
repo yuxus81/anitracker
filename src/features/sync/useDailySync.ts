@@ -52,7 +52,7 @@ async function runSync(qc: QueryClient): Promise<void> {
   );
   for (const r of pending) {
     try {
-      const a = (await jikanApi.getAnime(r.mal_id!)).data;
+      const a = (await jikanApi.getAnime(r.mal_id!, undefined, 'background')).data;
       if (isAired(a.status)) {
         await updateAnime(r.id, {
           is_released: true,
@@ -70,14 +70,14 @@ async function runSync(qc: QueryClient): Promise<void> {
   const limbos = rows.filter((r) => r.category === 'watched' && r.status === 'limbo' && r.mal_id);
   for (const r of limbos) {
     try {
-      const relations = (await jikanApi.getRelations(r.mal_id!)).data;
+      const relations = (await jikanApi.getRelations(r.mal_id!, undefined, 'background')).data;
       const sequel = relations
         .find((x) => x.relation === 'Sequel')
         ?.entry.find((e) => e.type === 'anime');
       if (!sequel) continue;
 
       if (!rows.some((x) => x.mal_id === sequel.mal_id)) {
-        const full = (await jikanApi.getAnime(sequel.mal_id)).data;
+        const full = (await jikanApi.getAnime(sequel.mal_id, undefined, 'background')).data;
         await insertAnime({
           title: getBestTitle(full),
           category: 'next_season',
@@ -110,11 +110,17 @@ async function runSync(qc: QueryClient): Promise<void> {
       const sourceMalId = findSourceMalId(r, rows);
       if (!sourceMalId) continue;
       // Persist a title-matched source so future runs resolve it directly.
+      // Best-effort in its own try: if this write fails (e.g. schema drift),
+      // it must NOT abort the actual sequel check below.
       if (!r.source_mal_id) {
-        await updateAnime(r.id, { source_mal_id: sourceMalId });
+        try {
+          await updateAnime(r.id, { source_mal_id: sourceMalId });
+        } catch {
+          /* purely an optimization; resolution still works via title match */
+        }
       }
 
-      const relations = (await jikanApi.getRelations(sourceMalId)).data;
+      const relations = (await jikanApi.getRelations(sourceMalId, undefined, 'background')).data;
       const sequel = relations
         .find((x) => x.relation === 'Sequel')
         ?.entry.find((e) => e.type === 'anime');
@@ -122,7 +128,7 @@ async function runSync(qc: QueryClient): Promise<void> {
       // Already tracked under its real id elsewhere → don't create a duplicate.
       if (rows.some((x) => x.id !== r.id && x.mal_id === sequel.mal_id)) continue;
 
-      const full = (await jikanApi.getAnime(sequel.mal_id)).data;
+      const full = (await jikanApi.getAnime(sequel.mal_id, undefined, 'background')).data;
       const released = isAired(full.status);
       await updateAnime(r.id, {
         title: getBestTitle(full),
@@ -148,14 +154,39 @@ async function runSync(qc: QueryClient): Promise<void> {
   }
 }
 
-/** Kick off the sync once per app session, as soon as the user is logged in. */
+// Give interactive first-paint requests (Discover rows, a quickly opened popup)
+// a head start before the background sync joins the request queue.
+const SYNC_START_DELAY_MS = 5000;
+
+/**
+ * Run `fn` only if no other tab is currently syncing. The Web Locks API gives
+ * us an atomic cross-tab mutex; `ifAvailable` means a second tab skips the run
+ * instead of queueing a duplicate. Browsers without the API just run directly.
+ */
+function runExclusive(fn: () => Promise<void>): void {
+  if (typeof navigator !== 'undefined' && navigator.locks?.request) {
+    void navigator.locks.request('anitracker-sync', { ifAvailable: true }, async (lock) => {
+      if (lock) await fn();
+    });
+  } else {
+    void fn();
+  }
+}
+
+/** Kick off the sync once per app session, shortly after the user is logged in. */
 export function useDailySync(enabled: boolean) {
   const qc = useQueryClient();
   useEffect(() => {
     if (!enabled || syncStarted) return;
     syncStarted = true;
-    runSync(qc).catch(() => {
-      /* never crash the app over a background sync */
-    });
+    // Deliberately not cleared on unmount: the module-level guard already ran,
+    // and clearing would let StrictMode's double-mount cancel the only run.
+    window.setTimeout(() => {
+      runExclusive(() =>
+        runSync(qc).catch(() => {
+          /* never crash the app over a background sync */
+        }),
+      );
+    }, SYNC_START_DELAY_MS);
   }, [enabled, qc]);
 }

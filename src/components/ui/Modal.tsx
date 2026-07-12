@@ -24,6 +24,12 @@ const sizes = { sm: 'max-w-sm', md: 'max-w-md', lg: 'max-w-lg' } as const;
 const FOCUSABLE =
   'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])';
 
+// Stack of currently-open modals. Each instance registers a token on open;
+// only the topmost one reacts to Escape. Without this, every open modal's
+// document-level listener fired on the same keypress (stopPropagation doesn't
+// stop sibling listeners on the same target), closing stacked modals at once.
+const modalStack: object[] = [];
+
 export function Modal({
   open,
   onClose,
@@ -52,6 +58,8 @@ export function Modal({
   useEffect(() => {
     if (!open) return;
     previouslyFocused.current = document.activeElement as HTMLElement;
+    const token = {};
+    modalStack.push(token);
 
     // Focus a text input if the panel has one (search fields etc.), otherwise
     // the first focusable element. Runs once per open — never on re-render.
@@ -63,6 +71,7 @@ export function Modal({
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        if (modalStack[modalStack.length - 1] !== token) return; // not topmost
         e.stopPropagation();
         (onBackRef.current ?? onCloseRef.current)();
         return;
@@ -87,6 +96,8 @@ export function Modal({
 
     document.addEventListener('keydown', onKeyDown, true);
     return () => {
+      const i = modalStack.indexOf(token);
+      if (i >= 0) modalStack.splice(i, 1);
       document.removeEventListener('keydown', onKeyDown, true);
       previouslyFocused.current?.focus?.();
     };

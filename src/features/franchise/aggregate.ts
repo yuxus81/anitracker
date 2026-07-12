@@ -20,16 +20,19 @@ export interface FranchiseEntry {
 
 /** Whole-franchise rollup shown in the "Version 1" detail popup. */
 export interface FranchiseAggregate {
-  seasons: FranchiseEntry[]; // released/airing TV entries (chronological)
+  seasons: FranchiseEntry[]; // released/airing TV (+ full-length ONA) entries
   movies: FranchiseEntry[]; // released movie entries
-  specials: FranchiseEntry[]; // released OVA / ONA / Special / Music entries
+  specials: FranchiseEntry[]; // released OVA / short ONA / Special entries
   announced: FranchiseEntry[]; // entries not yet aired (any type)
   episodes: number; // total episodes across seasons
   score: number | null; // episode-weighted average score
+  /** True when the walk hit MAX_NODES — the counts may undershoot reality. */
+  truncated: boolean;
 }
 
 // Relations that keep us inside the same franchise. We deliberately skip
-// "Character", "Other" and "Adaptation" (manga) so unrelated works don't leak in.
+// "Character", "Other" and "Adaptation" (manga) so unrelated works don't leak
+// in — and "Summary" (recap compilations), which inflated the movie count.
 const FRANCHISE_RELATIONS = new Set([
   'Prequel',
   'Sequel',
@@ -38,11 +41,19 @@ const FRANCHISE_RELATIONS = new Set([
   'Side story',
   'Alternative version',
   'Spin-off',
-  'Summary',
 ]);
 
+// Promo clutter (music videos, previews, commercials) reachable via relations.
+// It isn't watchable franchise content and made the Specials count look wrong.
+const NOISE_TYPES = new Set(['music', 'pv', 'cm']);
+
+// Full seasons released straight to web (Netflix & co.) are typed "ONA" on MAL.
+// Anything this long is a season for our purposes, not a special.
+const ONA_SEASON_MIN_EPISODES = 5;
+
 // Safety cap on API calls for very large franchises (Jikan is rate-limited).
-const MAX_NODES = 20;
+// The persistent per-anime cache keeps even big walks cheap on repeat visits.
+const MAX_NODES = 40;
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -70,8 +81,13 @@ function toEntry(a: JikanAnime): FranchiseEntry {
   };
 }
 
+/** Whether an entry counts as a full season: TV, or a full-length web release. */
+function isSeason(type: string, episodes: number | null | undefined): boolean {
+  return type === 'tv' || (type === 'ona' && (episodes ?? 0) >= ONA_SEASON_MIN_EPISODES);
+}
+
 /** Classify a set of franchise members into the grouped, chronological rollup. */
-function groupMembers(members: JikanAnime[]): FranchiseAggregate {
+function groupMembers(members: JikanAnime[], truncated = false): FranchiseAggregate {
   // Chronological order means each group array comes out sorted as we classify.
   const sorted = [...members].sort((x, y) => airedMs(x) - airedMs(y));
 
@@ -84,18 +100,19 @@ function groupMembers(members: JikanAnime[]): FranchiseAggregate {
   let weight = 0;
 
   for (const a of sorted) {
+    const type = (a.type ?? '').toLowerCase();
+    if (NOISE_TYPES.has(type)) continue;
     if (a.status === 'Not yet aired') {
       announced.push(toEntry(a));
       continue;
     }
-    const type = (a.type ?? '').toLowerCase();
     if (type === 'movie') {
       movies.push(toEntry(a));
-    } else if (type === 'tv') {
+    } else if (isSeason(type, a.episodes)) {
       seasons.push(toEntry(a));
       episodes += a.episodes ?? 0;
     } else {
-      specials.push(toEntry(a)); // OVA / ONA / Special / Music / TV Special / …
+      specials.push(toEntry(a)); // OVA / short ONA / Special / TV Special / …
     }
     if (a.score != null) {
       const w = a.episodes ?? 1;
@@ -111,6 +128,7 @@ function groupMembers(members: JikanAnime[]): FranchiseAggregate {
     announced,
     episodes,
     score: weight > 0 ? round1(scoreWeight / weight) : null,
+    truncated,
   };
 }
 
@@ -184,5 +202,7 @@ export async function aggregateFranchise(
   if (members.length === 0) {
     throw new JikanError(0, 'Franchise konnte nicht geladen werden');
   }
-  return groupMembers(members);
+  // A non-empty frontier after the loop means we stopped at the cap, not at the
+  // graph's natural edge — flag it so the UI can say the counts are a floor.
+  return groupMembers(members, frontier.length > 0);
 }
