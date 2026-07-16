@@ -1,7 +1,7 @@
 import { useMemo, useState, type CSSProperties, type ComponentType, type SVGProps } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/queryClient';
-import { jikanApi } from '@/api/jikan';
+import { fetchTop, fetchSeasonNow, fetchByGenre } from '@/api/discovery';
 import { cleanDiscovery } from '@/utils/clean';
 import { useAnimeSearch } from '@/hooks/useSearch';
 import { PageHeader } from '@/components/ui/PageHeader';
@@ -18,7 +18,7 @@ import {
   StarIcon,
   TvIcon,
 } from '@/components/icons/CategoryIcons';
-import type { JikanAnime, JikanListResponse } from '@/types/jikan';
+import type { JikanAnime } from '@/types/jikan';
 import { ParticleGlyph, type ParticleShape, type PopupAtmosphere } from '@/components/ui/ParticleField';
 import { PosterCard } from './PosterCard';
 
@@ -34,13 +34,13 @@ const CURATED: Array<{
   title: string;
   Icon: Icon;
   color: string;
-  run: (s: AbortSignal) => Promise<JikanListResponse>;
+  run: (s: AbortSignal) => Promise<JikanAnime[]>;
 }> = [
-  { key: 'airing', title: 'Gerade angesagt', Icon: FlameIcon, color: '#ff7043', run: (s) => jikanApi.getTop({ filter: 'airing' }, s) },
-  { key: 'season', title: 'Neu diese Season', Icon: SparkleIcon, color: '#5ad1ff', run: (s) => jikanApi.getSeasonNow(1, s) },
-  { key: 'top', title: 'Beste Bewertung', Icon: StarIcon, color: '#ffcf5c', run: (s) => jikanApi.getTop({}, s) },
-  { key: 'movies', title: 'Top Filme', Icon: FilmIcon, color: '#c9a8ff', run: (s) => jikanApi.getTop({ type: 'movie' }, s) },
-  { key: 'popular', title: 'Am beliebtesten', Icon: HeartIcon, color: '#ff5c8a', run: (s) => jikanApi.getTop({ filter: 'bypopularity' }, s) },
+  { key: 'airing', title: 'Gerade angesagt', Icon: FlameIcon, color: '#ff7043', run: (s) => fetchTop({ filter: 'airing' }, s) },
+  { key: 'season', title: 'Neu diese Season', Icon: SparkleIcon, color: '#5ad1ff', run: (s) => fetchSeasonNow(1, s) },
+  { key: 'top', title: 'Beste Bewertung', Icon: StarIcon, color: '#ffcf5c', run: (s) => fetchTop({}, s) },
+  { key: 'movies', title: 'Top Filme', Icon: FilmIcon, color: '#c9a8ff', run: (s) => fetchTop({ type: 'movie' }, s) },
+  { key: 'popular', title: 'Am beliebtesten', Icon: HeartIcon, color: '#ff5c8a', run: (s) => fetchTop({ filter: 'bypopularity' }, s) },
 ];
 
 /**
@@ -324,12 +324,12 @@ function DiscoveryRow({
   Icon: Icon;
   color: string;
   queryKey: readonly unknown[];
-  run: (s: AbortSignal) => Promise<JikanListResponse>;
+  run: (s: AbortSignal) => Promise<JikanAnime[]>;
   atmosphere?: PopupAtmosphere;
 }) {
   const q = useQuery({
     queryKey,
-    queryFn: async ({ signal }) => cleanDiscovery((await run(signal)).data).slice(0, 16),
+    queryFn: async ({ signal }) => cleanDiscovery(await run(signal)).slice(0, 16),
   });
 
   // Only hide a row once it has genuinely loaded empty. A transient error (e.g. a
@@ -393,7 +393,7 @@ function GenreView({ genre, type }: { genre: Genre; type: SearchType }) {
     key: string;
     title: string;
     Icon: Icon;
-    opts: Parameters<typeof jikanApi.byGenre>[1];
+    opts: Parameters<typeof fetchByGenre>[1];
   }> = [
     { key: 'popular', title: 'Beliebt', Icon: FlameIcon, opts: { orderBy: 'members' } },
     { key: 'top', title: 'Beste Bewertung', Icon: StarIcon, opts: { orderBy: 'score' } },
@@ -409,7 +409,7 @@ function GenreView({ genre, type }: { genre: Genre; type: SearchType }) {
           Icon={row.Icon}
           color={color}
           queryKey={['discovery', `genre-${row.key}`, genre.id, type]}
-          run={(s) => jikanApi.byGenre(genre.id, { ...row.opts, type: type ?? undefined }, s)}
+          run={(s) => fetchByGenre(genre.id, { ...row.opts, type: type ?? undefined }, s)}
           atmosphere={atmosphere}
         />
       ))}
@@ -422,7 +422,7 @@ function TypeBrowse({ type }: { type: SearchType }) {
   const q = useQuery({
     queryKey: ['discovery', 'type-top', type],
     queryFn: async ({ signal }) =>
-      cleanDiscovery((await jikanApi.getTop({ type: type ?? undefined }, signal)).data),
+      cleanDiscovery(await fetchTop({ type: type ?? undefined }, signal)),
   });
   return (
     <ResultGrid

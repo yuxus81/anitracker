@@ -1,5 +1,7 @@
 import type { JikanAnime } from '@/types/jikan';
 import { jikanApi } from '@/api/jikan';
+import { anilistGetFullByMalId } from '@/api/anilist';
+import { jikanLooksDown, reportJikanFailure, reportJikanSuccess } from '@/lib/listCache';
 
 /**
  * Persistent (IndexedDB) cache for Jikan `/full` payloads, keyed by MAL id.
@@ -114,12 +116,36 @@ function abortRejection(signal: AbortSignal): Promise<never> {
   });
 }
 
-async function fetchAndCache(malId: number, db: IDBDatabase | null): Promise<JikanAnime> {
+async function fetchAndCache(
+  malId: number,
+  db: IDBDatabase | null,
+  stale: CachedEntry | undefined,
+): Promise<JikanAnime> {
   try {
     // Deliberately unsignaled: the shared fetch should finish + cache regardless
     // of which caller aborts, so siblings and re-opens reuse it cleanly.
-    const data = (await jikanApi.getAnimeFull(malId)).data;
-    if (db) writeEntry(db, { malId, data, ts: Date.now() });
+    // Outage ladder: Jikan → expired cache entry (full MAL fidelity, just old)
+    // → AniList (independent API, mapped to the same shape). Only when all
+    // three fail does the popup ever see an error again.
+    if (!jikanLooksDown()) {
+      try {
+        const data = (await jikanApi.getAnimeFull(malId)).data;
+        reportJikanSuccess();
+        if (db) writeEntry(db, { malId, data, ts: Date.now() });
+        return data;
+      } catch (err) {
+        reportJikanFailure(err);
+        // A real 404 must surface as such, not get papered over by fallbacks.
+        if ((err as { status?: number })?.status === 404) throw err;
+      }
+    }
+
+    if (stale) return stale.data;
+
+    const data = await anilistGetFullByMalId(malId);
+    // Cache with an aged timestamp: good enough to serve during the outage,
+    // but refreshed from Jikan (richer payload) once it recovers.
+    if (db) writeEntry(db, { malId, data, ts: Date.now() - AIRING_MAX_AGE_MS });
     return data;
   } finally {
     pending.delete(malId);
@@ -137,18 +163,21 @@ export async function getAnimeFullCached(malId: number, signal?: AbortSignal): P
   if (signal?.aborted) throw new DOMException('Aborted', 'AbortError');
 
   const db = await openDb();
+  let stale: CachedEntry | undefined;
   if (db) {
     sweepExpired(db);
     const hit = await readEntry(db, malId);
     if (hit) {
       const maxAge = hit.data.airing ? AIRING_MAX_AGE_MS : MAX_AGE_MS;
       if (Date.now() - hit.ts < maxAge) return hit.data;
+      // Expired, but kept as an outage fallback: old data beats an error popup.
+      stale = hit;
     }
   }
 
   let shared = pending.get(malId);
   if (!shared) {
-    shared = fetchAndCache(malId, db);
+    shared = fetchAndCache(malId, db, stale);
     pending.set(malId, shared);
   }
 

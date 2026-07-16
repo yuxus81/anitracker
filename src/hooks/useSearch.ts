@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { qk } from '@/lib/queryClient';
-import { jikanApi } from '@/api/jikan';
+import { fetchSearch } from '@/api/discovery';
 import { cleanDiscovery } from '@/utils/clean';
 
 /** Debounce a rapidly-changing value. */
@@ -24,8 +24,8 @@ export function useAnimeSearch(rawQuery: string, type: 'tv' | 'movie' | null = n
     queryKey: [...qk.search(query), type],
     enabled: query.length >= 2,
     queryFn: async ({ signal }) => {
-      const res = await jikanApi.search(query, type, signal);
-      return cleanDiscovery(res.data);
+      const res = await fetchSearch(query, type, signal);
+      return cleanDiscovery(res);
     },
   });
 }
